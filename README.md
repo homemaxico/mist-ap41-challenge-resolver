@@ -1,14 +1,17 @@
 # mist-ap41-challenge-resolver
 
-This is a C implementation of the SHA256 HMAC based challange of the mist AP 41.
-I based my work on https://github.com/neggles/mist-ap41 , all of this wouldn't be possible witouth it, please make sure to check it out!, it cointains all the info on how to acess the device's serial console, witouth even opening the access point!
+This is a C implementation of the SHA256 HMAC based challenge implemented on the mist AP41.
+
+I based my work on https://github.com/neggles/mist-ap41 , all of this wouldn't be possible witouth it, please make sure to check it out!. It cointains all the info on how to acess the device's serial console, you don't need to even open the device.
 
 From the device /etc/inittab file, we can see console_login attached to the console listining to the serial port:
 ```
 # Put a getty on the serial port
 console::respawn:/sbin/getty -l /bin/console_login -L console 0 vt100
 ```
-At the console promt, console_login will present a base64 encoded SHA256 HMAC challenge, with an initial 'B'. If the setting developer=true is present in the uboot enviroment (uboot settings are stored on 24c64 eeprom). I reverse engenirined the binary console_login, I plan to write a guide on all the painfull steps that I had to endure (I knew noting about ghidra or arm v7 elf structure), in case another poor soul encountres a similar problem in the future, but for now this is a quick overview of the developer challenge:
+At the console promt, console_login will present a base64 encoded SHA256 HMAC challenge, with an initial 'B'. If the setting developer=true is present in the uboot enviroment (uboot settings are stored on 24c64 eeprom). 
+
+I reverse engineering the binary console_login and I plan to write a guide with all the painfull steps that I had to endure (I knew noting about ghidra or arm v7 elf structure), in case another poor soul encountres a similar problem in the future, but for now this is a quick overview of the developer challenge:
 
 The challenge has the following structure:
 
@@ -33,8 +36,7 @@ Depending on the status of the device, if we hit Ctrl+C at boot prompt we will b
 challenge: TODO
 response: 
 ```
-I had a quick look at the uboot binary with ghydra, I soon realized that reverse engeniring bare metal binaries is a lot more harder, but I was lucky to noticed the following piece of pseudo-code in ghydra:
-
+I had a quick look at the uboot binary with ghydra and I soon realized that reverse engeniring bare metal binaries is a lot more harder!, but I was lucky to noticed the following piece of pseudo-code in ghydra:
 ```
 bool FUN_00014b9c(void)
 
@@ -55,7 +57,12 @@ bool FUN_00014b9c(void)
   return true;
 }
 ```
-0x42 is the ascii character 'B', that combined with the glorouys TODO string from uboot, I decided to try just 'B' as a response. It works!!.
+0x42 is the ascii character 'B', that combined with the glorious TODO string from uboot, got me thinking maybe just expects a 'B' as a response?. So guess what, it did :
+```
+challenge: TODO
+response:B
+aph> 
+```
 
 from the uboot cli we can obtain the eeprom key located at 0x400, and set the developer=true env
 1. eeprom rd 0x400 0x10 
