@@ -5,6 +5,7 @@ This is a C implementation of the SHA256 HMAC based challange of the mist AP 41 
 # compilation
 
 dependences = libssl, libcrypto
+
 make (debug)
 
 # usage 
