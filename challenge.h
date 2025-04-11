@@ -7,11 +7,11 @@
 
 #define MAC_ADDRESS_LEN 0x11 // 16 + 1 null carachter
 
-#define DEVELOPER_MSG_1 "Cm7nkp2X4cMfKuw0"
-#define DEVELOPER_MSG_2 "fqxWAIytIQt26vkU"
-#define MSG_1 "sr7Krl7tkajVBowS"
-#define MSG_2 "ZuSX01QGh8PJq0Na"
-#define MSG_TEXT_LEN 0x10
+#define DEVELOPER_SECRET_1 "Cm7nkp2X4cMfKuw0"
+#define DEVELOPER_SECRET_2 "fqxWAIytIQt26vkU"
+#define SECRET_1 "sr7Krl7tkajVBowS"
+#define SECRET_2 "ZuSX01QGh8PJq0Na"
+#define SECRET_LEN 0x10
 
 #define DEVELOPER_RANDOM_LEN 0x10
 #define RANDOM_LEN 0x20

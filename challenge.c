@@ -103,9 +103,9 @@ unsigned char * developer_answer(char * developer_challenge, char* sha256_key, u
 
     // Compose the challenge msg
     unsigned char  developer_challenge_answer[DEVELOPER_CHALLENGE_LEN];
-    memcpy(developer_challenge_answer, DEVELOPER_MSG_1, MSG_TEXT_LEN);
-    memcpy(developer_challenge_answer + MSG_TEXT_LEN, mac_address, MAC_ADDRESS_LEN);
-    memcpy(developer_challenge_answer + (MSG_TEXT_LEN + MAC_ADDRESS_LEN), DEVELOPER_MSG_2, MSG_TEXT_LEN);
+    memcpy(developer_challenge_answer, DEVELOPER_SECRET_1, SECRET_LEN);
+    memcpy(developer_challenge_answer + SECRET_LEN, mac_address, MAC_ADDRESS_LEN);
+    memcpy(developer_challenge_answer + (SECRET_LEN + MAC_ADDRESS_LEN), DEVELOPER_SECRET_2, SECRET_LEN);
     developer_challenge_answer[DEVELOPER_CHALLENGE_LEN] = '\0';
 
     if (*info == 1){
