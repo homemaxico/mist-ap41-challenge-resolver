@@ -4,7 +4,7 @@ This is a C implementation of the SHA256 HMAC based login challenge present on t
 
 I based my work on https://github.com/neggles/mist-ap41 , all of this wouldn't be possible witouth it, please make sure to check it out!. It cointains all the info on how to acess the device's serial console, you don't need to even open the device.
 
-From the device /etc/inittab file, we can see console_login attached to the console listining to the serial port:
+From the device /etc/inittab file, we can see console_login attached to the the serial console:
 ```
 # Put a getty on the serial port
 console::respawn:/sbin/getty -l /bin/console_login -L console 0 vt100
@@ -64,10 +64,25 @@ response:B
 aph> 
 ```
 
-from the uboot cli we can obtain the eeprom key located at 0x400, and set the developer=true env
-1. eeprom rd 0x400 0x10 
-2. env set developer true
-3. env save
+Once we got access to the uboot cli, we need to dump the eeprom key located at 0x400 and set the env developer=true
+1. eeprom rd {offset} {lenght} 
+   ```
+   aph> eeprom rd 0x400 0x10
+        00000400: 6c 2a 8f a9 ee 10 15 45 0f b4 XX XX XX XX XX XX    l*.....E...00000
+   ```
+2.
+   ```
+   aph>set developer true
+   ```
+3.
+   ```
+   aph>saveenv
+   ```
+
+From the uboot cli we can dumo the whole eeprom for further analysis, witouth desoldering anything or opening the device:
+```
+aph> eeprom rd 0 0x800
+```
 
 After reboot , trying to login as any user will show first a developer challenge, if the check fails then console_binary will generate a challenge type A with a different structure. 
 
