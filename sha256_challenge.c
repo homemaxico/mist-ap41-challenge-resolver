@@ -12,7 +12,7 @@ void print_usage(const char *program_name) {
     printf("  -C <challenge_from_mist> base64 challenge, with or withouth an initial B character\n");
     printf("  -K <16 bit key from a mist AP41> , format deadbeefdeadbeefdeadbeeefdeadbeef \n");
     printf("  -i show info\n");
-    printf("  -G <mac address> generate a mist41 developer challange for a given mac\n");
+    printf("  -G <mac address> generate a mist41 developer challenge for a given mac\n");
     printf("  -R <16 bits random number for challenge generation, format aabbccddeeffaaabacadaeafbabbbcbd>\n");
     printf("  -h Show this help message\n");
     printf("\n-F or -K are mandatory arguments. if -R is not given the program will generate a random number.");

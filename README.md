@@ -15,7 +15,7 @@ The challenge has the following structure:
 
 {D,A}|0a-26-6d-9e-41-30|{user}|16 or 32 bits random number, depending on the type of challenge
 
-1. Type of challange, D (developer), A (answer)
+1. Type of challenge, D (developer), A (answer)
 2. Mac address, fields separated by '-'
 3. Username, when the uboot env developer=true is set, the user is always 'developer'
 4. Random number, 16bits (0x10) for the D challenge, 32bits (0x20) for the A challenge from device's /dev/urandom
@@ -106,7 +106,7 @@ Arguments:
 
   -i show info
 
-  -G <mac address> generate a mist41 developer challange for a given mac
+  -G <mac address> generate a mist41 developer challenge for a given mac
 
   -R <16 bits random number for challenge generation, format aabbccddeeffaaabacadaeafbabbbcbd>
 

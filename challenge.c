@@ -142,11 +142,12 @@ unsigned char * developer_answer(char * developer_challenge, char* sha256_key, u
   unsigned char * generate_developer_challenge( char* mac_address, char* random_from_stdin, uint8_t* info){
     //Compose the msg
     char *user = "developer";
-    unsigned char *developer_msg = malloc(DEVELOPER_CHALLANGE_LEN);
+    unsigned char *developer_msg = malloc(DEVELOPER_CHALLENGE_LEN);
     if (developer_msg == NULL){
         return NULL;
     }
 
+    //console_login expects a NULL character after the mac address, but not after any '|' or binary characther
     developer_msg[0] = 'D';
     developer_msg[1] = '|';
     memcpy(developer_msg+2, mac_address, MAC_ADDRESS_LEN);

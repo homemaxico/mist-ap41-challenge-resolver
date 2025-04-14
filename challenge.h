@@ -18,7 +18,7 @@
 
 #define DEVELOPER_MSG_LEN 49 // 48 + 1 NULL carachter
 #define DEVELOPER_ANSWER_LEN 48  // 0x10 random bits from a mist AP41 challenge + 0x20 bytes SHA256 HMAC
-#define DEVELOPER_CHALLANGE_LEN  46 // 0x20 D|mac|developer| + 0x10 random number
+#define DEVELOPER_CHALLENGE_LEN  46 // 0x20 D|mac|developer| + 0x10 random number
 
 
 
@@ -26,7 +26,7 @@
  * Generate a response for a mist AP41 developer challenge .
  *
  * Parameters:
- * - developer_challenge: challange from mistAP41
+ * - developer_challenge: challenge from mistAP41
  * - sha256_key: 16 bits developer key, format deadbeefdeadbeefdeadbeeefdeadbeef
  * - info: print info messages to stdin, values 0 or 1
  *
@@ -34,7 +34,7 @@
  * - unsigned char * final_developer_answer (48), base64 encode answer to the developer challenge on success.
  * - NULL on error
  */
-unsigned char * developer_answer(char*  developer_challange,  char* sha256_key, uint8_t* info);
+unsigned char * developer_answer(char*  developer_challenge,  char* sha256_key, uint8_t* info);
 
 
 /*
