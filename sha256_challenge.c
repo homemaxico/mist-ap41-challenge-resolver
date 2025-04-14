@@ -12,8 +12,10 @@ void print_usage(const char *program_name) {
     printf("  -C <challenge_from_mist> base64 challenge, with or withouth an initial B character\n");
     printf("  -K <16 bit key from a mist AP41> , format deadbeefdeadbeefdeadbeeefdeadbeef \n");
     printf("  -i show info\n");
+    printf("  -G <mac address> generate a mist41 developer challange for a given mac\n");
+    printf("  -R <16 bits random number for challenge generation, format aabbccddeeffaaabacadaeafbabbbcbd>\n");
     printf("  -h Show this help message\n");
-    printf("\n-F or -K are mandatory arguments.");
+    printf("\n-F or -K are mandatory arguments. if -R is not given the program will generate a random number.");
     printf("\n");
 }
 
@@ -21,7 +23,9 @@ void print_usage(const char *program_name) {
 int main(int argc, char* argv[]) {
     char* challenge_from_stdin = NULL;
     char* eeprom_file_path = NULL;
-    char* sha256_stdin_key = NULL; 
+    char* sha256_stdin_key = NULL;
+    char* mac_adress = NULL; 
+    char* random_from_stdin = NULL;
     uint8_t info = 0;
     
     if(argc > 1){
@@ -36,11 +40,39 @@ int main(int argc, char* argv[]) {
                     fprintf(stderr, "Error: -C requires a challenge string\n");
                     print_usage(argv[0]);
                     return 1;
-            }
+                }
+            }else if (strcmp(argv[i], "-G") == 0) {
+                if (i + 1 < argc && strlen(argv[++i]) > 0x10) {
+                    mac_adress = argv[i];
+                } else {
+                    fprintf(stderr, "Error: -G requires a mac address\n");
+                    print_usage(argv[0]);
+                    return 1;
+                }
+            }else if (strcmp(argv[i], "-R") == 0) {
+                if (i + 1 < argc && strlen(argv[++i]) > 11) { //16 bits + NULL character
+                    random_from_stdin = argv[i];
+                } else {
+                    fprintf(stderr, "Error: -R requires a 16bit random number\n");
+                    print_usage(argv[0]);
+                    return 1;
+                }
             }else if (strcmp(argv[i], "-F") == 0) {
-                eeprom_file_path = argv[++i];
+                if (i + 1 < argc && strlen(argv[++i]) > 11) { //16 bits + NULL character
+                    eeprom_file_path = argv[i];
+                } else {
+                    fprintf(stderr, "Error: -F requires an eeprom dump file\n");
+                    print_usage(argv[0]);
+                    return 1;
+                }
             }else if (strcmp(argv[i], "-K") == 0) {
-                sha256_stdin_key = argv[++i];
+                if (i + 1 < argc && strlen(argv[++i]) > 11) { //16 bits + NULL character
+                    sha256_stdin_key = argv[i];
+                } else {
+                    fprintf(stderr, "Error: -K requires a 16bit key\n");
+                    print_usage(argv[0]);
+                    return 1;
+                }                            
             }else if (strcmp(argv[i], "-i") == 0) {
                 info = 1;
             }else{
@@ -49,6 +81,26 @@ int main(int argc, char* argv[]) {
                 return 1;
             } 
         }
+    }
+
+    if (mac_adress != NULL){
+        if (info ==1){
+            printf("Developer challenge for %s:\n", mac_adress );
+        }
+
+        char * random_for_mist = NULL;    
+        if (random_from_stdin != NULL){
+            size_t random_len = DEVELOPER_RANDOM_LEN;
+            random_for_mist = (char*) hex_string_to_bytes(random_from_stdin, &random_len);
+        }
+        
+        unsigned char* developer_challenge = generate_developer_challenge(mac_adress, random_for_mist, &info);
+        unsigned char * b64_challenge = base64_encode(developer_challenge , DEVELOPER_ANSWER_LEN);
+
+        printf("B%s\n",b64_challenge);
+        free(b64_challenge);
+        
+        return 0;
     }
 
     if (challenge_from_stdin != NULL && (eeprom_file_path != NULL || sha256_stdin_key != NULL)){
@@ -60,10 +112,12 @@ int main(int argc, char* argv[]) {
         base64_decode(challenge_from_stdin, decoded_challenge, sizeof(decoded_challenge));
 
         if (memcmp(decoded_challenge, "D",1) == 0){            
-            
-            char * developer_key = NULL;
+            unsigned char * developer_key = NULL;
             if (eeprom_file_path != NULL){
-                developer_key = (char*)get_eeprom(eeprom_file_path);                
+                developer_key = get_eeprom(eeprom_file_path); 
+                if (developer_key == NULL){
+                    return -1;
+                }               
                 if (info == 1){
                     printf("Challenge type D (Developer)\n");
                     printf("eeprom key: ");
@@ -79,21 +133,22 @@ int main(int argc, char* argv[]) {
             
             }else{
                 size_t key_len = KEY_LEN;
-                developer_key = (char*) hex_string_to_bytes(sha256_stdin_key, &key_len);
+                developer_key = (unsigned char*) hex_string_to_bytes(sha256_stdin_key, &key_len);
+                if (developer_key == NULL){
+                    return 1;
+                }
             }
 
-            unsigned char * final_developer_answer = developer_answer((char*)decoded_challenge, developer_key, &info);
+            unsigned char * final_developer_answer = developer_answer((char*)decoded_challenge, (char*)developer_key, &info);
             // Base64 encode final answer
-            char *b64_final_answer = base64_encode(final_developer_answer, DEVELOPER_ANSWER_LEN);
+            unsigned char *b64_final_answer = base64_encode(final_developer_answer, DEVELOPER_ANSWER_LEN);
             if (info == 1){
                 printf("Developer Answer: B%s\n", b64_final_answer);
             }else{
                 printf("B%s\n", b64_final_answer);
+                return 0;
             }
-            free(developer_key);
-        
-        }else if (memcmp(decoded_challenge, "A",1 == 1)){
-            
+        }else if (memcmp(decoded_challenge, "A",1) == 0){            
             printf("Challenge type A not supported \n");
             return 1;
         }

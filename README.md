@@ -2,7 +2,7 @@
 
 This is a C implementation of the SHA256 HMAC based login challenge present on the mist AP41.
 
-I based my work on https://github.com/neggles/mist-ap41 , all of this wouldn't be possible witouth it, please make sure to check it out!. It cointains all the info on how to acess the device's serial console, you don't need to even open the device.
+I based this work on https://github.com/neggles/mist-ap41 , all of this wouldn't be possible witouth it, please make sure to check it out!. It cointains all the info on how to acess the device's serial console, you don't need to even open the device.
 
 From the device /etc/inittab file, we can see console_login attached to the the serial console:
 ```
@@ -99,21 +99,32 @@ Usage: ./sha256_challenge [arguments]
 Arguments:
 
   -F <eeprom_file> 24c64 eeprom dump from a mist AP-41
-  
+
   -C <challenge_from_mist> base64 challenge, with or withouth an initial B character
-  
+
   -K <16 bit key from a mist AP41> , format deadbeefdeadbeefdeadbeeefdeadbeef 
-  
+
   -i show info
-  
+
+  -G <mac address> generate a mist41 developer challange for a given mac
+
+  -R <16 bits random number for challenge generation, format aabbccddeeffaaabacadaeafbabbbcbd>
+
   -h Show this help message
 
-  
 
--F or -K are mandatory arguments.
+-F or -K are mandatory arguments. if -R is not given the program will generate a random number.
+
 # example challenge
 
 ```
-./sha256_challenge  -C BRHwwYS0yNi02ZC05ZS00MS0zMHxkZXZlbG9wZXJ8qrvM3e7/qqusra6vuru8vQ== -K deadbeefdeadbeefdeadbeeefdeadbeef
+./sha256_challenge   -C BRHwwYS0yNi02ZC05ZS00MS0zMHxkZXZlbG9wZXJ8qrvM3e7/qqusra6vuru8vQAA -K deadbeefdeadbeefdeadbeefdeadbeef -i
+```
+
+```
+Mac address: 0a-26-6d-9e-41-30
+Challenge answer: Cm7nkp2X4cMfKuw00a-26-6d-9e-41-30fqxWAIytIQt26vkU
+Random number from mist: aabbccddeeffaaabacadaeafbabbbcbd
+Developer Answer: BqrvM3e7/qqusra6vuru8vVE9SXcLIGETiUhSoyd14GI8m0DnSCCP0I4qdk4jxZ2r
 ```
 

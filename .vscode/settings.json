@@ -1,0 +1,12 @@
+{
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/home/homemaxico/codigo/mist-ap41-challenge-resolver",
+            "binaryPath": "/home/homemaxico/codigo/mist-ap41-challenge-resolver/sha256_challenge",
+            "binaryArgs": []
+        }
+    ],
+    "files.associations": {
+        "base64.h": "c"
+    }
+}
