@@ -92,6 +92,8 @@ dependences = libssl, libcrypto
 
 make , make debug
 
+make test
+
 # usage 
 
 Usage: ./sha256_challenge [arguments]
@@ -102,15 +104,15 @@ Arguments:
 
   -C <challenge_from_mist> base64 challenge, with or withouth an initial B character
 
-  -K <16 bit key from a mist AP41> , format deadbeefdeadbeefdeadbeeefdeadbeef 
-
-  -i show info
+  -K <16 bit key from a mist AP41> , format deadbeefdeadbeefdeadbeefdeadbeef 
 
   -G <mac address> generate a mist41 developer challenge for a given mac
 
-  -R <16 bits random number for challenge generation, format aabbccddeeffaaabacadaeafbabbbcbd>
+  -R <16 bits random number> for challenge generation, format aabbccddeeffaaabacadaeafbabbbcbd
 
   -h Show this help message
+
+  -i show info
 
 
 -F or -K are mandatory arguments. if -R is not given the program will generate a random number.
