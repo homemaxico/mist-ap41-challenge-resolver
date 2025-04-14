@@ -142,7 +142,6 @@ unsigned char * developer_answer(char * developer_challenge, char* sha256_key, u
   unsigned char * generate_developer_challenge( char* mac_address, char* random_from_stdin, uint8_t* info){
     //Compose the msg
     char *user = "developer";
-    //unsigned char *developer_msg = malloc(DEVELOPER_CHALLENGE_LEN);
     unsigned char *developer_msg = calloc(DEVELOPER_CHALLENGE_LEN, sizeof(int));
     if (developer_msg == NULL){
         return NULL;

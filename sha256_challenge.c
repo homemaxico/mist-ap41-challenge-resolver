@@ -10,11 +10,11 @@ void print_usage(const char *program_name) {
     printf("Arguments:\n");
     printf("  -F <eeprom_file> 24c64 eeprom dump from a mist AP-41\n");
     printf("  -C <challenge_from_mist> base64 challenge, with or withouth an initial B character\n");
-    printf("  -K <16 bit key from a mist AP41> , format deadbeefdeadbeefdeadbeeefdeadbeef \n");
-    printf("  -i show info\n");
+    printf("  -K <16 bit key from a mist AP41> , format deadbeefdeadbeefdeadbeefdeadbeef \n");
     printf("  -G <mac address> generate a mist41 developer challenge for a given mac\n");
-    printf("  -R <16 bits random number for challenge generation, format aabbccddeeffaaabacadaeafbabbbcbd>\n");
+    printf("  -R <16 bits random number> for challenge generation, format aabbccddeeffaaabacadaeafbabbbcbd\n");
     printf("  -h Show this help message\n");
+    printf("  -i show info\n");
     printf("\n-F or -K are mandatory arguments. if -R is not given the program will generate a random number.");
     printf("\n");
 }
@@ -51,8 +51,8 @@ int main(int argc, char* argv[]) {
                 }
             } else if (strcmp(argv[i], "-G") == 0) {
                 if (i + 1 < argc) {
-                    i++;  // Move to the argument value
-                    if (strlen(argv[i]) > MAC_ADDRESS_LEN) { // check  
+                    i++;
+                    if (strlen(argv[i]) > MAC_ADDRESS_LEN) {  
                         mac_adress = argv[i];
                     } else {
                         fprintf(stderr, "Error: -G requires a MAC address with length > %d characters\n", 
@@ -67,7 +67,7 @@ int main(int argc, char* argv[]) {
                 }
             } else if (strcmp(argv[i], "-R") == 0) {
                 if (i + 1 < argc) {
-                    i++;  // Move to the argument value
+                    i++;
                     if (strlen(argv[i]) == (DEVELOPER_RANDOM_LEN*2)) {
                         random_from_stdin = argv[i];
                     } else {
@@ -83,7 +83,7 @@ int main(int argc, char* argv[]) {
                 }
             } else if (strcmp(argv[i], "-F") == 0) {
                 if (i + 1 < argc) {
-                    i++;  // Move to the argument value
+                    i++;
                     if (strlen(argv[i]) > MIN_EEPROM_PATH_LENGTH) {
                         eeprom_file_path = argv[i];
                     } else {
@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
                 }
             } else if (strcmp(argv[i], "-K") == 0) {
                 if (i + 1 < argc) {
-                    i++;  // Move to the argument value
+                    i++;
                     if (strlen(argv[i]) > KEY_LEN) {
                         sha256_stdin_key = argv[i];
                     } else {
@@ -139,6 +139,7 @@ int main(int argc, char* argv[]) {
 
         printf("B%s\n",b64_challenge);
         free(b64_challenge);
+        free(developer_challenge);
         
         return 0;
     }
@@ -162,7 +163,7 @@ int main(int argc, char* argv[]) {
                     printf("Challenge type D (Developer)\n");
                     printf("eeprom key: ");
                     for (int i = 0; i < KEY_LEN; i++) {
-                        printf("%x",(unsigned char)developer_key[i]);
+                        printf("%02x",developer_key[i]);
                     }
                     printf("\n");                
                 }
