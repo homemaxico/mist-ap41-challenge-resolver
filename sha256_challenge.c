@@ -28,58 +28,98 @@ int main(int argc, char* argv[]) {
     char* random_from_stdin = NULL;
     uint8_t info = 0;
     
-    if(argc > 1){
+    if(argc > 1) {
         for (int i = 1; i < argc; i++) {
-            if ( (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "-H") == 0) && i + 1 <= argc) {
+            if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "-H") == 0) {
                 print_usage(argv[0]);
                 return 0;
-            }else if (strcmp(argv[i], "-C") == 0) {
-                if (i + 1 < argc && strlen(argv[++i]) > 0x10) {
-                    challenge_from_stdin = argv[i];
+            } else if (strcmp(argv[i], "-C") == 0) {
+                if (i + 1 < argc) {
+                    i++;  // Move to the argument value
+                    if (strlen(argv[i]) > MIN_CHALLENGE_LENGTH) {
+                        challenge_from_stdin = argv[i];
+                    } else {
+                        fprintf(stderr, "Error: -C requires a challenge string with length > %d characters\n", 
+                                MIN_CHALLENGE_LENGTH);
+                        print_usage(argv[0]);
+                        return 1;
+                    }
                 } else {
-                    fprintf(stderr, "Error: -C requires a challenge string\n");
+                    fprintf(stderr, "Error: -C option requires an argument\n");
                     print_usage(argv[0]);
                     return 1;
                 }
-            }else if (strcmp(argv[i], "-G") == 0) {
-                if (i + 1 < argc && strlen(argv[++i]) > 0x10) {
-                    mac_adress = argv[i];
+            } else if (strcmp(argv[i], "-G") == 0) {
+                if (i + 1 < argc) {
+                    i++;  // Move to the argument value
+                    if (strlen(argv[i]) > MAC_ADDRESS_LEN) { // check  
+                        mac_adress = argv[i];
+                    } else {
+                        fprintf(stderr, "Error: -G requires a MAC address with length > %d characters\n", 
+                                MAC_ADDRESS_LEN);
+                        print_usage(argv[0]);
+                        return 1;
+                    }
                 } else {
-                    fprintf(stderr, "Error: -G requires a mac address\n");
+                    fprintf(stderr, "Error: -G option requires an argument\n");
                     print_usage(argv[0]);
                     return 1;
                 }
-            }else if (strcmp(argv[i], "-R") == 0) {
-                if (i + 1 < argc && strlen(argv[++i]) > 11) { //16 bits + NULL character
-                    random_from_stdin = argv[i];
+            } else if (strcmp(argv[i], "-R") == 0) {
+                if (i + 1 < argc) {
+                    i++;  // Move to the argument value
+                    if (strlen(argv[i]) == (DEVELOPER_RANDOM_LEN*2)) {
+                        random_from_stdin = argv[i];
+                    } else {
+                        fprintf(stderr, "Error: -R requires a 16bit random number with length > %d characters\n", 
+                                DEVELOPER_RANDOM_LEN);
+                        print_usage(argv[0]);
+                        return 1;
+                    }
                 } else {
-                    fprintf(stderr, "Error: -R requires a 16bit random number\n");
+                    fprintf(stderr, "Error: -R option requires an argument\n");
                     print_usage(argv[0]);
                     return 1;
                 }
-            }else if (strcmp(argv[i], "-F") == 0) {
-                if (i + 1 < argc && strlen(argv[++i]) > 11) { //16 bits + NULL character
-                    eeprom_file_path = argv[i];
+            } else if (strcmp(argv[i], "-F") == 0) {
+                if (i + 1 < argc) {
+                    i++;  // Move to the argument value
+                    if (strlen(argv[i]) > MIN_EEPROM_PATH_LENGTH) {
+                        eeprom_file_path = argv[i];
+                    } else {
+                        fprintf(stderr, "Error: -F requires an eeprom dump file with length > %d characters\n", 
+                                MIN_EEPROM_PATH_LENGTH);
+                        print_usage(argv[0]);
+                        return 1;
+                    }
                 } else {
-                    fprintf(stderr, "Error: -F requires an eeprom dump file\n");
+                    fprintf(stderr, "Error: -F option requires an argument\n");
                     print_usage(argv[0]);
                     return 1;
                 }
-            }else if (strcmp(argv[i], "-K") == 0) {
-                if (i + 1 < argc && strlen(argv[++i]) > 11) { //16 bits + NULL character
-                    sha256_stdin_key = argv[i];
+            } else if (strcmp(argv[i], "-K") == 0) {
+                if (i + 1 < argc) {
+                    i++;  // Move to the argument value
+                    if (strlen(argv[i]) > KEY_LEN) {
+                        sha256_stdin_key = argv[i];
+                    } else {
+                        fprintf(stderr, "Error: -K requires a 16bit key with length > %d characters\n", 
+                                KEY_LEN);
+                        print_usage(argv[0]);
+                        return 1;
+                    }
                 } else {
-                    fprintf(stderr, "Error: -K requires a 16bit key\n");
+                    fprintf(stderr, "Error: -K option requires an argument\n");
                     print_usage(argv[0]);
                     return 1;
-                }                            
-            }else if (strcmp(argv[i], "-i") == 0) {
+                }
+            } else if (strcmp(argv[i], "-i") == 0) {
                 info = 1;
-            }else{
-                fprintf(stderr, "Error: invalid %s option\n", argv[i]);
+            } else {
+                fprintf(stderr, "Error: invalid option '%s'\n", argv[i]);
                 print_usage(argv[0]);
                 return 1;
-            } 
+            }
         }
     }
 
@@ -95,7 +135,7 @@ int main(int argc, char* argv[]) {
         }
         
         unsigned char* developer_challenge = generate_developer_challenge(mac_adress, random_for_mist, &info);
-        unsigned char * b64_challenge = base64_encode(developer_challenge , DEVELOPER_ANSWER_LEN);
+        unsigned char * b64_challenge = base64_encode(developer_challenge , DEVELOPER_CHALLENGE_LEN);
 
         printf("B%s\n",b64_challenge);
         free(b64_challenge);

@@ -7,6 +7,7 @@
 
 #define KEY_OFFSET 0x400
 #define KEY_LEN 0x10
+#define MIN_EEPROM_PATH_LENGTH 2 // at least one character + NULL 
 
 
 unsigned char *get_eeprom(const char* file);

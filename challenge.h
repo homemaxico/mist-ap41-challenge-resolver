@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define MAC_ADDRESS_LEN 0x11 // 16 + 1 null carachter
+#define MAC_ADDRESS_LEN 0x10 
 
 #define DEVELOPER_SECRET_1 "Cm7nkp2X4cMfKuw0"
 #define DEVELOPER_SECRET_2 "fqxWAIytIQt26vkU"
@@ -19,6 +19,8 @@
 #define DEVELOPER_MSG_LEN 49 // 48 + 1 NULL carachter
 #define DEVELOPER_ANSWER_LEN 48  // 0x10 random bits from a mist AP41 challenge + 0x20 bytes SHA256 HMAC
 #define DEVELOPER_CHALLENGE_LEN  46 // 0x20 D|mac|developer| + 0x10 random number
+#define MIN_CHALLENGE_LENGTH 2 // Not sure about this
+
 
 
 
