@@ -189,6 +189,7 @@ int main(int argc, char* argv[]) {
                 printf("Developer answer: ");
             }
             printf("B%s\n", b64_final_answer);
+            free(b64_final_answer);
             return 0;
             
         }else if (memcmp(decoded_challenge, "A",1) == 0){            

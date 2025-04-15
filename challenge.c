@@ -30,7 +30,7 @@ size_t base64_decode(const char *in, unsigned char *out, size_t out_len) {
 
 unsigned char *base64_encode(const unsigned char *input, size_t length) {
     size_t output_len = 4 * ((length + 2) / 3);  // Calculate required output buffer size
-    unsigned char *encoded_data = malloc(output_len + 1);  // +1 for null terminator
+    unsigned char *encoded_data = calloc(output_len ,sizeof(int));  
     
     EVP_EncodeBlock(encoded_data, input, length);
     encoded_data[output_len] = '\0';  // Add null terminator
@@ -116,14 +116,12 @@ unsigned char * developer_answer(char * developer_challenge, char* sha256_key, u
         }
 
         unsigned char * msg = random_from_mist;
-        unsigned char *sha256_answer_first = calloc(SHA256_DIGEST_LENGTH, sizeof(int));
-
-        sha256_answer_first = get_sha256((unsigned char*)sha256_key, strlen(sha256_key), msg, DEVELOPER_RANDOM_LEN);
+        unsigned char *sha256_answer_first = get_sha256((unsigned char*)sha256_key, strlen(sha256_key), msg, DEVELOPER_RANDOM_LEN);
         free(msg);
-    
     
         if (!sha256_answer_first) {
             fprintf(stderr, "Failed to calculate first SHA256 HMAC\n");
+            free(sha256_answer_first);
             return NULL;
         }
 
@@ -134,6 +132,7 @@ unsigned char * developer_answer(char * developer_challenge, char* sha256_key, u
         
         memcpy(final_developer_answer + DEVELOPER_RANDOM_LEN, sha256_answer_2nd, sha256_answer_2nd_len);
         
+        free(sha256_answer_2nd);
         return final_developer_answer;
 
     }else{
