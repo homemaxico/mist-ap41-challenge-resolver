@@ -2,3 +2,4 @@
 .vscode/settings.json
 .vscode/tasks.json
 sha256_challenge
+fake_eeprom.bin

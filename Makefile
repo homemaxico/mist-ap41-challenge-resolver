@@ -15,7 +15,7 @@ $(TARGET): $(SRCS)
 debug: CFLAGS += -g -DDEBUG
 debug: clean $(TARGET)
 
-test:
+test: $(TARGET)
 	@./test_script.sh
 
 clean:

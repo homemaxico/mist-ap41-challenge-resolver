@@ -153,7 +153,7 @@ unsigned char * developer_answer(char * developer_challenge, char* sha256_key, u
     memcpy(developer_msg+2, mac_address, MAC_ADDRESS_LEN+1);
     developer_msg[MAC_ADDRESS_LEN+2+1] = '|';
     memcpy(developer_msg+(4+MAC_ADDRESS_LEN), user, strlen(user));
-    memcpy(developer_msg+(5+MAC_ADDRESS_LEN+sizeof(user)), "|", 2);
+    memcpy(developer_msg+(5+MAC_ADDRESS_LEN+sizeof(user)), "|", 2); 
     
     //random number 
     unsigned char *random_for_mist = malloc(DEVELOPER_RANDOM_LEN);

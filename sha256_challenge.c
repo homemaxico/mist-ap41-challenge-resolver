@@ -124,10 +124,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (mac_adress != NULL){
-        if (info ==1){
-            printf("Developer challenge for %s:\n", mac_adress );
-        }
-
+        
         char * random_for_mist = NULL;    
         if (random_from_stdin != NULL){
             size_t random_len = DEVELOPER_RANDOM_LEN;
@@ -136,6 +133,10 @@ int main(int argc, char* argv[]) {
         
         unsigned char* developer_challenge = generate_developer_challenge(mac_adress, random_for_mist, &info);
         unsigned char * b64_challenge = base64_encode(developer_challenge , DEVELOPER_CHALLENGE_LEN);
+
+        if (info ==1){
+            printf("Developer challenge for %s: ", mac_adress );
+        }
 
         printf("B%s\n",b64_challenge);
         free(b64_challenge);
@@ -184,11 +185,12 @@ int main(int argc, char* argv[]) {
             // Base64 encode final answer
             unsigned char *b64_final_answer = base64_encode(final_developer_answer, DEVELOPER_ANSWER_LEN);
             if (info == 1){
-                printf("Developer Answer: B%s\n", b64_final_answer);
-            }else{
-                printf("B%s\n", b64_final_answer);
-                return 0;
+                printf("------------------------\n");
+                printf("Developer answer: ");
             }
+            printf("B%s\n", b64_final_answer);
+            return 0;
+            
         }else if (memcmp(decoded_challenge, "A",1) == 0){            
             printf("Challenge type A not supported \n");
             return 1;
