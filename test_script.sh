@@ -52,5 +52,5 @@ for test in "${!tests[@]}"; do
   echo "------------------------"
 done
 
-# rm $fake_file
+rm $fake_file
 echo "Tests complete: $passed passed, $failed failed"
