@@ -182,6 +182,9 @@ int main(int argc, char* argv[]) {
             }
 
             unsigned char * final_developer_answer = developer_answer((char*)decoded_challenge, (char*)developer_key, &info);
+            if (final_developer_answer == NULL){
+                return 1;
+            }
             // Base64 encode final answer
             unsigned char *b64_final_answer = base64_encode(final_developer_answer, DEVELOPER_ANSWER_LEN);
             if (info == 1){

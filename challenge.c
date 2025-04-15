@@ -100,7 +100,6 @@ unsigned char * developer_answer(char * developer_challenge, char* sha256_key, u
     // 1st Generation : SHA256 digest with the eeprom key. 
     size_t sha256_answer_first_len = SHA256_DIGEST_LENGTH;
 
-
     if ( sha256_key != NULL){
         // Extract random number from the challenge 
         unsigned char *random_from_mist = calloc(DEVELOPER_RANDOM_LEN, sizeof(int));
@@ -140,7 +139,6 @@ unsigned char * developer_answer(char * developer_challenge, char* sha256_key, u
         return NULL;
     }
 }
-
 
 
   unsigned char * generate_developer_challenge( char* mac_address, char* random_from_stdin, uint8_t* info){
@@ -187,5 +185,3 @@ unsigned char * developer_answer(char * developer_challenge, char* sha256_key, u
     }
     return developer_msg;
 }
-
-
