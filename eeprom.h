@@ -10,6 +10,6 @@
 #define MIN_EEPROM_PATH_LENGTH 2 // at least one character + NULL 
 
 
-unsigned char *get_eeprom(const char* file);
+unsigned char *get_key_from_eeprom(const char* file);
 
 #endif /* EEPROM_H */

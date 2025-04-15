@@ -73,10 +73,10 @@ unsigned char *get_sha256(const unsigned char *key, size_t key_len,
 
 
 unsigned char * developer_answer(char * developer_challenge, char* sha256_key, uint8_t* info){       
-    // Extract mac address , right after characters "D|" , including a final NULL character 
-    unsigned char mac_address[MAC_ADDRESS_LEN+1];
-    memcpy(mac_address, developer_challenge+2, (strlen(developer_challenge)-2));
-    mac_address[MAC_ADDRESS_LEN+1] = '\0';
+    // Extract mac address , right after characters "D|" 
+    unsigned char mac_address[MAC_ADDRESS_LEN];
+    memcpy(mac_address, developer_challenge+2, MAC_ADDRESS_LEN);
+    mac_address[MAC_ADDRESS_LEN] = '\0';
 
     if (*info == 1){
         printf("Mac address: ");
@@ -87,8 +87,8 @@ unsigned char * developer_answer(char * developer_challenge, char* sha256_key, u
     // Compose the challenge msg
     unsigned char  developer_challenge_answer[DEVELOPER_MSG_LEN];
     memcpy(developer_challenge_answer, DEVELOPER_SECRET_1, SECRET_LEN);
-    memcpy(developer_challenge_answer + SECRET_LEN, mac_address, MAC_ADDRESS_LEN+1);
-    memcpy(developer_challenge_answer + (SECRET_LEN + MAC_ADDRESS_LEN+1), DEVELOPER_SECRET_2, SECRET_LEN);
+    memcpy(developer_challenge_answer + SECRET_LEN, mac_address, MAC_ADDRESS_LEN);
+    memcpy(developer_challenge_answer + (SECRET_LEN + MAC_ADDRESS_LEN), DEVELOPER_SECRET_2, SECRET_LEN);
     developer_challenge_answer[DEVELOPER_MSG_LEN] = '\0';
 
     if (*info == 1){
@@ -149,13 +149,12 @@ unsigned char * developer_answer(char * developer_challenge, char* sha256_key, u
         return NULL;
     }
 
-    //console_login expects a NULL character after the mac address, but not after any '|' or binary characther
     developer_msg[0] = 'D';
     developer_msg[1] = '|';
-    memcpy(developer_msg+2, mac_address, MAC_ADDRESS_LEN+1);
-    developer_msg[MAC_ADDRESS_LEN+1+2] = '|';
-    memcpy(developer_msg+(4+MAC_ADDRESS_LEN), user, strlen(user));
-    memcpy(developer_msg+(5+MAC_ADDRESS_LEN+sizeof(user)), "|", 2); 
+    memcpy(developer_msg+2, mac_address, MAC_ADDRESS_LEN);
+    developer_msg[MAC_ADDRESS_LEN+2] = '|';
+    memcpy(developer_msg+(MAC_ADDRESS_LEN+3), user, strlen(user));
+    memcpy(developer_msg+(4+MAC_ADDRESS_LEN+sizeof(user)), "|", 2); 
     
     //random number 
     unsigned char *random_for_mist = malloc(DEVELOPER_RANDOM_LEN);
@@ -174,7 +173,7 @@ unsigned char * developer_answer(char * developer_challenge, char* sha256_key, u
     }
 
 
-    memcpy(developer_msg+(MAC_ADDRESS_LEN + 5 + strlen(user)),random_for_mist, DEVELOPER_RANDOM_LEN);
+    memcpy(developer_msg+(MAC_ADDRESS_LEN + 4 + strlen(user)),random_for_mist, DEVELOPER_RANDOM_LEN);
 
     if (*info == 1 && random_from_stdin == NULL){
         printf("random for mist: ");

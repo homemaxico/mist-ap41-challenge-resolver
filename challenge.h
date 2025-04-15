@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define MAC_ADDRESS_LEN 0x10 
+#define MAC_ADDRESS_LEN 17
 
 #define DEVELOPER_SECRET_1 "Cm7nkp2X4cMfKuw0"
 #define DEVELOPER_SECRET_2 "fqxWAIytIQt26vkU"

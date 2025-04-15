@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
             } else if (strcmp(argv[i], "-G") == 0) {
                 if (i + 1 < argc) {
                     i++;
-                    if (strlen(argv[i]) > MAC_ADDRESS_LEN) {  
+                    if (strlen(argv[i]) > MAC_ADDRESS_LEN-1) {  
                         mac_adress = argv[i];
                     } else {
                         fprintf(stderr, "Error: -G requires a MAC address with length > %d characters\n", 
@@ -156,7 +156,7 @@ int main(int argc, char* argv[]) {
         if (memcmp(decoded_challenge, "D",1) == 0){            
             unsigned char * developer_key = NULL;
             if (eeprom_file_path != NULL){
-                developer_key = get_eeprom(eeprom_file_path); 
+                developer_key = get_key_from_eeprom(eeprom_file_path); 
                 if (developer_key == NULL){
                     return -1;
                 }               

@@ -4,7 +4,7 @@
 #include "eeprom.h"
 
 
-unsigned char *get_eeprom(const char* file) {
+unsigned char *get_key_from_eeprom(const char* file) {
     FILE *f = fopen(file, "rb");
     if (!f) {
         perror("Failed to open EEPROM file");
