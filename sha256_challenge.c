@@ -175,7 +175,7 @@ int main(int argc, char* argv[]) {
             
             }else{
                 size_t key_len = KEY_LEN;
-                developer_key = (unsigned char*) hex_string_to_bytes(sha256_stdin_key, &key_len);
+                developer_key =  hex_string_to_bytes(sha256_stdin_key, &key_len);
                 if (developer_key == NULL){
                     return 1;
                 }

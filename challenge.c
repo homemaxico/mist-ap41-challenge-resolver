@@ -47,7 +47,7 @@ unsigned char* hex_string_to_bytes(const char* hex_string, size_t* out_len) {
     }
     
     *out_len = len / 2;
-    unsigned char* bytes = malloc(*out_len);
+    unsigned char* bytes = calloc(*out_len, sizeof(int));
     if (!bytes) {
         return NULL;
     }
@@ -61,10 +61,8 @@ unsigned char* hex_string_to_bytes(const char* hex_string, size_t* out_len) {
 }
 
 unsigned char *get_sha256(const unsigned char *key, size_t key_len, 
-                          const unsigned char *msg, size_t msg_len, 
-                          size_t *out_len) {
-    unsigned char *result = malloc(SHA256_DIGEST_LENGTH);
-    *out_len = SHA256_DIGEST_LENGTH;
+                          const unsigned char *msg, size_t msg_len) {
+    unsigned char *result = calloc(SHA256_DIGEST_LENGTH, sizeof(int));
     unsigned char *sha256_key = (unsigned char *)key;    
     
     HMAC(EVP_sha256(), sha256_key, key_len, msg, msg_len, result, NULL);
@@ -100,12 +98,12 @@ unsigned char * developer_answer(char * developer_challenge, char* sha256_key, u
     }
         
     // 1st Generation : SHA256 digest with the eeprom key. 
-    size_t sha256_answer_first_len;
-    unsigned char *sha256_answer_first = malloc(0x20);
+    size_t sha256_answer_first_len = SHA256_DIGEST_LENGTH;
+
 
     if ( sha256_key != NULL){
         // Extract random number from the challenge 
-        unsigned char *random_from_mist = malloc(DEVELOPER_RANDOM_LEN);
+        unsigned char *random_from_mist = calloc(DEVELOPER_RANDOM_LEN, sizeof(int));
         memcpy(random_from_mist, developer_challenge + 30, DEVELOPER_RANDOM_LEN);
         memcpy(final_developer_answer, random_from_mist, DEVELOPER_RANDOM_LEN);
         
@@ -117,26 +115,33 @@ unsigned char * developer_answer(char * developer_challenge, char* sha256_key, u
             printf("\n");
         }
 
-        unsigned char * msg = (unsigned char *)random_from_mist;
-        sha256_answer_first = get_sha256((unsigned char*)sha256_key, strlen(sha256_key), msg, DEVELOPER_RANDOM_LEN, &sha256_answer_first_len);
+        unsigned char * msg = random_from_mist;
+        unsigned char *sha256_answer_first = calloc(SHA256_DIGEST_LENGTH, sizeof(int));
+
+        sha256_answer_first = get_sha256((unsigned char*)sha256_key, strlen(sha256_key), msg, DEVELOPER_RANDOM_LEN);
         free(msg);
-    }
     
-    if (!sha256_answer_first) {
-        fprintf(stderr, "Failed to calculate first SHA256 HMAC\n");
+    
+        if (!sha256_answer_first) {
+            fprintf(stderr, "Failed to calculate first SHA256 HMAC\n");
+            return NULL;
+        }
+
+        // 2nd Generation : SHA digest using the first result as key
+        size_t sha256_answer_2nd_len = SHA256_DIGEST_LENGTH;
+        unsigned char *sha256_answer_2nd = get_sha256(sha256_answer_first, sha256_answer_first_len, 
+                                                    developer_challenge_answer, DEVELOPER_MSG_LEN);
+        
+        memcpy(final_developer_answer + DEVELOPER_RANDOM_LEN, sha256_answer_2nd, sha256_answer_2nd_len);
+        
+        return final_developer_answer;
+
+    }else{
+        fprintf(stderr, "Empty SHA256 key\n");
         return NULL;
     }
-
-    // 2nd Generation : SHA digest using the first result as key
-    size_t sha256_answer_2nd_len;
-    unsigned char *sha256_answer_2nd = get_sha256(sha256_answer_first, sha256_answer_first_len, 
-                                                developer_challenge_answer, DEVELOPER_MSG_LEN, 
-                                                &sha256_answer_2nd_len);
-    
-    memcpy(final_developer_answer + DEVELOPER_RANDOM_LEN, sha256_answer_2nd, sha256_answer_2nd_len);
-    
-    return final_developer_answer;
 }
+
 
 
   unsigned char * generate_developer_challenge( char* mac_address, char* random_from_stdin, uint8_t* info){
@@ -151,7 +156,7 @@ unsigned char * developer_answer(char * developer_challenge, char* sha256_key, u
     developer_msg[0] = 'D';
     developer_msg[1] = '|';
     memcpy(developer_msg+2, mac_address, MAC_ADDRESS_LEN+1);
-    developer_msg[MAC_ADDRESS_LEN+2+1] = '|';
+    developer_msg[MAC_ADDRESS_LEN+1+2] = '|';
     memcpy(developer_msg+(4+MAC_ADDRESS_LEN), user, strlen(user));
     memcpy(developer_msg+(5+MAC_ADDRESS_LEN+sizeof(user)), "|", 2); 
     
@@ -171,7 +176,8 @@ unsigned char * developer_answer(char * developer_challenge, char* sha256_key, u
         random_for_mist = (unsigned char*)random_from_stdin;
     }
 
-    memcpy(developer_msg+30,random_for_mist, DEVELOPER_RANDOM_LEN);
+
+    memcpy(developer_msg+(MAC_ADDRESS_LEN + 5 + strlen(user)),random_for_mist, DEVELOPER_RANDOM_LEN);
 
     if (*info == 1 && random_from_stdin == NULL){
         printf("random for mist: ");

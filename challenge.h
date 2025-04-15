@@ -63,15 +63,13 @@ unsigned char * developer_answer(char*  developer_challenge,  char* sha256_key, 
  * - key_len: len of the key
  * - msg : message for the HHMAC 
  * - msg_len: len of the message 
- * - out_len: cointaner for the size of the generated digest
  *
  * Returns:
  * - unsiged char* result on success
  * - NULL on error
  */
 unsigned char *get_sha256(const unsigned char *key, size_t key_len, 
-                          const unsigned char *msg, size_t msg_len, 
-                          size_t *out_len);
+                          const unsigned char *msg, size_t msg_len);
 
 
 // Base64 decoding function
