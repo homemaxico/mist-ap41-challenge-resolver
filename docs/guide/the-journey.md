@@ -136,22 +136,22 @@ So we know that 2 functions are using that text, FUN_00010e80 and FUN_00011cec. 
 
 In FUN_00010e80(), at the very begining:
 
-``
-  DAT_00023944 = basename(*param_2);
-  if ((param_1 < 2) || (iVar2 = strcmp(param_2[1],"-h"), iVar2 == 0)) {
-LAB_00010f2a:
-     pcVar20 = "Usage: %s [-t] <username>\n";
-  }
-``
+```
+    DAT_00023944 = basename(*param_2);
+    if ((param_1 < 2) || (iVar2 = strcmp(param_2[1],"-h"), iVar2 == 0)) {
+  LAB_00010f2a:
+       pcVar20 = "Usage: %s [-t] <username>\n";
+    }
+```
 
 So this is probably the main function, let's rename it, and dig a bit further, on line 120, there's this:
 
-``
+```
      if ((iVar2 != 1) && (iVar2 = FUN_00011924("developer"), iVar2 != 0)) {
         iVar2 = FUN_00011cec(pcVar20,iVar2,pcVar17);
-``
+```
 
-FUN_00011924("developer"), on line 17 calls FUN_00011464. If we have a look at the pseudocode FUN_00011464 bellow, it tries to read an i2c eeprom, if it fails tries with a different path.  
+``FUN_00011924("developer")``, on line 17 calls `FUN_00011464`. If we have a look at the pseudocode bellow, it tries to read an i2c eeprom, if it fails tries with a different path.  
 
 ```
 undefined * FUN_00011464(size_t *param_1)
