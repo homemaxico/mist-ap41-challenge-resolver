@@ -36,11 +36,11 @@ int main(int argc, char* argv[]) {
             } else if (strcmp(argv[i], "-C") == 0) {
                 if (i + 1 < argc) {
                     i++;  // Move to the argument value
-                    if (strlen(argv[i]) > MIN_CHALLENGE_LENGTH) {
+                    if (strlen(argv[i]) > DEVELOPER_ANSWER_LEN) {
                         challenge_from_stdin = argv[i];
                     } else {
                         fprintf(stderr, "Error: -C requires a challenge string with length > %d characters\n", 
-                                MIN_CHALLENGE_LENGTH);
+                                DEVELOPER_ANSWER_LEN);
                         print_usage(argv[0]);
                         return 1;
                     }
