@@ -583,10 +583,11 @@ Value = -1333414416
 (gdb) x/1s 0x24138
 0x24138:        "\252\273\314\335\356\377\252\253\254\255\256\257\272\273\274\275zUÜA=\331-\226&\263\364eg+HH[\2240\355y\rz\371\370{\247\f\211\275s"
 (gdb) 
+```
 
 Placing different watchpoint and checking the memory contents it's a terrific way to get more information. In my tests I found out that I was sending an extra null character before the random number, so get_sha_256_hmac wasn't called to begin with. 
 
-But our friend console_login has a behaviour that works in our advantage (who is laughing now!). If the developer answer is incorrect, the main threat continues, and generates a type A challange with a different structure. At this point I can pretty much tell by memory the Ghydra pseudo code for developer_login, and there are some malloc here and there, but not many free(). So if we hit Ctrl + C after a wrong developer answer while gdb is listening:
+But our friend console_login has a behaviour that works in our advantage (who is laughing now!). If the developer answer is incorrect, the main thread continues, and generates a type A challange with a different structure. At this point I can pretty much tell by memory the Ghydra pseudo code for developer_login, and there are some malloc here and there, but not many free(). So if we hit Ctrl + C after a wrong developer answer while gdb is listening:
 
 ```
 challenge: BRHwxMS0yMi0zMy00NC01NS02NnxkZXZlbG9wZXJ8qrvM3e7/qqusra6vuru8vQ==
@@ -603,7 +604,7 @@ Thread 1 "console_login" received signal SIGINT, Interrupt.
 (gdb)
 ```
 
-What a glourous view at location 0x24170! This is the msg generated to check if the answer is correct, so we were right about that part too. This helped me further troubleshoot my first attempts at cracking the challenge, I was sending extra NULL characters in this case aswell. 
+What a glourous view at location 0x24170! This is the msg generated to check if the answer is correct, so we were right about that part too. After an unsuscesfull operation 0x24170 should have been freed, but it aint. This helped me further troubleshoot my first attempts at cracking the challenge, I was sending extra NULL characters in this case aswell. 
 
 # Conclusion
 
