@@ -412,7 +412,7 @@ Login incorrect
 
 But fear not, we come prepared. From our [developer_login table](#functions-called-by-developer_login-at-00011cec), we know that a few files are needed:
 
-- /sys/devices/i2c1.1/i2c-0/0-0052/eeprom: We can get this from uboot cli, check [README](/README)
+- /sys/devices/i2c1.1/i2c-0/0-0052/eeprom: We can get this from uboot cli, check the [README](/README.md#getting-access-to-the-uboot-promt-at-boot) file.
 
     ```
     cd mist-ap41/ubidump/
