@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
             } else if (strcmp(argv[i], "-C") == 0) {
                 if (i + 1 < argc) {
                     i++;  // Move to the argument value
-                    if (strlen(argv[i]) > DEVELOPER_ANSWER_LEN) {
+                    if (strlen(argv[i]) > DEVELOPER_ANSWER_LEN) { 
                         challenge_from_stdin = argv[i];
                     } else {
                         fprintf(stderr, "Error: -C requires a challenge string with length > %d characters\n", 
@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
                     if (strlen(argv[i]) == (DEVELOPER_RANDOM_LEN*2)) {
                         random_from_stdin = argv[i];
                     } else {
-                        fprintf(stderr, "Error: -R requires a 16bit random number with length > %d characters\n", 
+                        fprintf(stderr, "Error: -R requires a 16bit random number of %d characters lenght\n", 
                                 DEVELOPER_RANDOM_LEN);
                         print_usage(argv[0]);
                         return 1;
@@ -100,11 +100,11 @@ int main(int argc, char* argv[]) {
             } else if (strcmp(argv[i], "-K") == 0) {
                 if (i + 1 < argc) {
                     i++;
-                    if (strlen(argv[i]) > KEY_LEN) {
+                    if (strlen(argv[i]) == KEY_LEN*2) {
                         sha256_stdin_key = argv[i];
                     } else {
-                        fprintf(stderr, "Error: -K requires a 16bit key with length > %d characters\n", 
-                                KEY_LEN);
+                        fprintf(stderr, "Error: -K requires a 16bit key with a length of %d characters\n", 
+                                KEY_LEN*2);
                         print_usage(argv[0]);
                         return 1;
                     }
@@ -130,6 +130,14 @@ int main(int argc, char* argv[]) {
             size_t random_len = DEVELOPER_RANDOM_LEN;
             random_for_mist = (char*) hex_string_to_bytes(random_from_stdin, &random_len);
         }
+
+        if((random_for_mist==NULL && (info==1))){
+            fprintf(stderr, "Error: Invalid random number for option -G, continuing using /dev/urandom\n");
+        }
+        if((random_for_mist==NULL && (info==0))){
+            fprintf(stderr, "Error: Invalid random number for option -G, exiting\n");
+            return 1;
+        }
         
         unsigned char* developer_challenge = generate_developer_challenge(mac_adress, random_for_mist, &info);
         unsigned char * b64_challenge = base64_encode(developer_challenge , DEVELOPER_CHALLENGE_LEN);
@@ -146,7 +154,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (challenge_from_stdin != NULL && (eeprom_file_path != NULL || sha256_stdin_key != NULL)){
-        unsigned char decoded_challenge[256] = "\0";    
+        unsigned char decoded_challenge[DEVELOPER_CHALLENGE_LEN] = "\0";    
         // check for initial 'B' character
         if (*challenge_from_stdin == 'B'){
             challenge_from_stdin = challenge_from_stdin+1;
@@ -155,11 +163,15 @@ int main(int argc, char* argv[]) {
 
         if (memcmp(decoded_challenge, "D",1) == 0){            
             unsigned char * developer_key = NULL;
+            
             if (eeprom_file_path != NULL){
+                
                 developer_key = get_key_from_eeprom(eeprom_file_path); 
                 if (developer_key == NULL){
+                    printf("Error getting the key from the eeprom\n");
                     return -1;
                 }               
+                
                 if (info == 1){
                     printf("Challenge type D (Developer)\n");
                     printf("eeprom key: ");
@@ -168,21 +180,21 @@ int main(int argc, char* argv[]) {
                     }
                     printf("\n");                
                 }
-                if (!developer_key) {
-                    printf("Error getting the key from the eeprom\n");
-                    return 1;
-                }
             
             }else{
                 size_t key_len = KEY_LEN;
                 developer_key =  hex_string_to_bytes(sha256_stdin_key, &key_len);
                 if (developer_key == NULL){
+                    if (info == 1){
+                        printf("Error: Invalid key %s\n", sha256_stdin_key);
+                    }
                     return 1;
                 }
             }
 
             unsigned char * final_developer_answer = developer_answer((char*)decoded_challenge, (char*)developer_key, &info);
             if (final_developer_answer == NULL){
+                fprintf(stderr, "Error: Couldn't get a developer answer for %s \n", challenge_from_stdin);
                 return 1;
             }
             // Base64 encode final answer
@@ -196,7 +208,7 @@ int main(int argc, char* argv[]) {
             return 0;
             
         }else if (memcmp(decoded_challenge, "A",1) == 0){            
-            printf("Challenge type A not supported \n");
+            fprintf(stderr,"Challenge type A not supported \n");
             return 1;
         }
 

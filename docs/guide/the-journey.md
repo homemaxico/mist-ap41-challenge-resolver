@@ -481,7 +481,7 @@ Missing rpms, try: dnf --enablerepo='*debug*' install qemu-user-static-arm-debug
 (gdb)
 ```
 
-I don't know about you, but I've never start a gdb session witouth set detach-on-fork off and set follow-fork-mode child. If console_login tries to launch another thread, gdb will follow. Next step is to check the memory mappings.
+I don't know about you, but I've never start a gdb session witouth set detach-on-fork off and set follow-fork-mode child options. If console_login tries to escape by launching another thread, gdb will follow. Next step is to check the memory mappings.
 
 ```
 (gdb) info proc mappings
@@ -564,7 +564,7 @@ Seems that 0x24000 is our sweet memory spot. We can have a peak with x/3000s 0x2
 We can see at location 0x24030 the generated challenge, and we were right about the challenge format!, our fake random number is staring back at us from address 0x24060 
 
 We have the address of the functions called by developer_login in our [little table](#functions-called-by-developer_login-at-00011cec), so let's set a breakpoint. 
-get_sha_256_hmac is a good target, it only get's called if the first 16 bits of the answer are equal to the random number from the challenge:
+get_sha_256_hmac is a good target, only get's called if the first 16 bits of the answer are equal to the random number from the challenge:
 
 ```
 (gdb) awatch *0x001143c
@@ -573,7 +573,7 @@ Hardware access (read/write) watchpoint 1: *0x001143c
 Continuing.
 ```
 
-If we give console_login a partialy right answer, gdb reacts and halts the execution when get_sha256_hmac gest accesed. A quick peek with our favorite gdb command (x), and we see that our answer is at address 0x24138:
+If we give console_login a partialy right answer, gdb reacts and halts the execution when get_sha256_hmac gets accesed. A quick peek with our favorite gdb memory command (x), and we see that our answer is at address 0x24138:
 
 ```
 Thread 1 "console_login" hit Hardware access (read/write) watchpoint 1: *0x001143c
@@ -587,7 +587,7 @@ Value = -1333414416
 
 Placing different watchpoint and checking the memory contents it's a terrific way to get more information. In my tests I found out that I was sending an extra null character before the random number, so get_sha_256_hmac wasn't called to begin with. 
 
-But our friend console_login has a behaviour that works in our advantage (who is laughing now!). If the developer answer is incorrect, the main thread continues, and generates a type A challange with a different structure. At this point I can pretty much tell by memory the Ghydra pseudo code for developer_login, and there are some malloc here and there, but not many free(). So if we hit Ctrl + C after a wrong developer answer while gdb is listening:
+But our friend console_login has a behaviour that works in our advantage (who is laughing now!). If the developer answer is incorrect, the main thread continues and generates a type A challenge with a different structure. At this point I can pretty much tell by memory the Ghydra pseudo code for developer_login, and there are some malloc here and there, but not any free(). So if we hit Ctrl + C after a wrong developer answer while gdb is listening:
 
 ```
 challenge: BRHwxMS0yMi0zMy00NC01NS02NnxkZXZlbG9wZXJ8qrvM3e7/qqusra6vuru8vQ==

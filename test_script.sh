@@ -24,7 +24,7 @@ declare -A tests=(
 declare -A expected=(
   ["test1"]="BqrvM3e7/qqusra6vuru8vVE9SXcLIGETiUhSoyd14GI8m0DnSCCP0I4qdk4jxZ2r"
   ["test2"]="Mac address: 0a-26-6d-9e-41-30
-Challenge answer: Cm7nkp2X4cMfKuw00a-26-6d-9e-41-30fqxWAIytIQt26vkU
+Developer answer: Cm7nkp2X4cMfKuw00a-26-6d-9e-41-30fqxWAIytIQt26vkU
 Random number from mist: aabbccddeeffaaabacadaeafbabbbcbd
 ------------------------
 Developer answer: BqrvM3e7/qqusra6vuru8vVE9SXcLIGETiUhSoyd14GI8m0DnSCCP0I4qdk4jxZ2r"

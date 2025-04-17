@@ -48,13 +48,23 @@ unsigned char* hex_string_to_bytes(const char* hex_string, size_t* out_len) {
     
     *out_len = len / 2;
     unsigned char* bytes = calloc(*out_len, sizeof(int));
+    unsigned char* bit = calloc(1, sizeof(int));
     if (!bytes) {
+        fprintf(stderr, "Error: Couldn't allocate memory\n");
         return NULL;
     }
     
-    for (size_t i = 0; i < *out_len; i++) {
+    for (size_t i = 0; i < *out_len; i++) {      
+        
+        char b1_test[3] = {hex_string[i*2+1], '\0'};
         char byte_str[3] = {hex_string[i*2], hex_string[i*2+1], '\0'};
+        bit[0] = (unsigned char)strtol(b1_test, NULL, 16);
         bytes[i] = (unsigned char)strtol(byte_str, NULL, 16);
+        
+        if( (bytes[i] == '\0' || bit[0] == '\0') && ( strcmp(byte_str,"00") != 0 ) ){
+            fprintf(stderr, "Error: hex string %s contains an invalid character %s at position %d\n",hex_string, byte_str, (int)i);
+            return NULL;
+        }
     }
     
     return bytes;
@@ -85,15 +95,15 @@ unsigned char * developer_answer(char * developer_challenge, char* sha256_key, u
     }
 
     // Compose the challenge msg
-    unsigned char  developer_challenge_answer[DEVELOPER_MSG_LEN];
-    memcpy(developer_challenge_answer, DEVELOPER_SECRET_1, SECRET_LEN);
-    memcpy(developer_challenge_answer + SECRET_LEN, mac_address, MAC_ADDRESS_LEN);
-    memcpy(developer_challenge_answer + (SECRET_LEN + MAC_ADDRESS_LEN), DEVELOPER_SECRET_2, SECRET_LEN);
-    developer_challenge_answer[DEVELOPER_MSG_LEN] = '\0';
+    unsigned char  answer_developer_msg[DEVELOPER_MSG_LEN];
+    memcpy(answer_developer_msg, DEVELOPER_SECRET_1, SECRET_LEN);
+    memcpy(answer_developer_msg + SECRET_LEN, mac_address, MAC_ADDRESS_LEN);
+    memcpy(answer_developer_msg + (SECRET_LEN + MAC_ADDRESS_LEN), DEVELOPER_SECRET_2, SECRET_LEN);
+    answer_developer_msg[DEVELOPER_MSG_LEN] = '\0';
 
     if (*info == 1){
-        printf("Challenge answer: ");
-        printf((char*)developer_challenge_answer);
+        printf("Developer answer: ");
+        printf((char*)answer_developer_msg);
         printf("\n");
     }
         
@@ -127,7 +137,7 @@ unsigned char * developer_answer(char * developer_challenge, char* sha256_key, u
         // 2nd Generation : SHA digest using the first result as key
         size_t sha256_answer_2nd_len = SHA256_DIGEST_LENGTH;
         unsigned char *sha256_answer_2nd = get_sha256(sha256_answer_first, sha256_answer_first_len, 
-                                                    developer_challenge_answer, DEVELOPER_MSG_LEN);
+                                                    answer_developer_msg, DEVELOPER_MSG_LEN);
         
         memcpy(final_developer_answer + DEVELOPER_RANDOM_LEN, sha256_answer_2nd, sha256_answer_2nd_len);
         
@@ -171,7 +181,6 @@ unsigned char * developer_answer(char * developer_challenge, char* sha256_key, u
     }else{
         random_for_mist = (unsigned char*)random_from_stdin;
     }
-
 
     memcpy(developer_msg+(MAC_ADDRESS_LEN + 4 + strlen(user)),random_for_mist, DEVELOPER_RANDOM_LEN);
 
