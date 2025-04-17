@@ -1,4 +1,24 @@
-# Introduction, exploting the device for fun and profit
+## Table of Contents
+
+ 1. [Introduction, exploting the device for fun and profit](#introduction-exploting-the-device-for-fun-and-profit)
+ 2. [Picking the right targer](#picking-the-right-target)
+ 3. [Time to start Ghidra](#time-to-start-ghidra)
+ 4. [Locate interesting functions](#time-to-start-ghidra)
+ 5. [FUN_00011cec, the developer challenge giver and receiver.](#fun_00011cec-the-developer-challenge-giver-and-receiver)
+ 6. [Going further deep into the rabbit hole that developer_console (AKA FUN_00011cec)](#going-further-deep-into-the-rabbit-hole-that-developer_console-aka-fun_00011cec)
+ 7. [get_sha256_HMAC (AKA FUN_0001143c) gives us clues, and more Ghidra tips!](#get_sha256_hmac-aka-fun_0001143c-gives-us-clues-and-more-ghidra-tips)
+ 8. [The hard truth about types](#the-hard-truth-about-types)
+ 9. [Putting it all together, the mighty developer answer](#putting-it-all-together-the-mighty-developer-answer)
+ 10. [Tears, back pain and qemu](#tears-back-pain-and-qemu)
+ 11. [Fooling console_login and laughing back at it (setting up an ARM chroot enviroment)](#fooling-console_login-and-laughing-back-at-it-setting-up-an-arm-chroot-enviroment)
+ 12. [Getting even more back at console_login with gdb](#getting-even-more-back-at-console_login-with-gdb)
+ 13. [Conclusion](#conclusion)
+
+
+
+
+
+## Introduction, exploting the device for fun and profit
 
 (Disclamer: I knew next to nothing about arm v7 assembler and/or Ghidra until a few weeks ago, this is more a how not to do things than anything else. But I think it can be a good starting point for someone starting a similar journey. )
 
@@ -13,9 +33,9 @@ So in a way, this is an exercise in futility. Once stablished that the answer to
 
 So if you are ready please join me in a tale of binary madness, tears and countless sleeping nights. This is by no means a how to guide on ARM and Ghidra, is more of a technical tale with a few lessons learned.
 
-# Picking the right target
+## Picking the right target
 
-In the device's ubidump files, the inittab file tell us that serial console it's guarded by the binary console_login. To start with, we can check if there are some readable strings on the binary, "strings" is your friendly command for this (the output is incomplete, I left only the interesting bits):
+In the device's ubidump files, the inittab file tell us that serial console it's guarded by the binary console_login. To start with, we can check if there are some readable strings on the binary, ``strings`` is your friendly command for this (the output is incomplete, I left only the interesting bits):
 ```
 +//sys/devices/i2c1.1/i2c-0/0-0052/eeprom
 Can't open %s: %s
@@ -63,9 +83,9 @@ aeabi
 Cortex-A9
 ```   
 
-The first string is an error message "%s: bytes2base64 failed". This gives us the name of one function (bytes2base64), and we can guess that base64 encoding is being used at some point. Right after the string challenge: %s tell us that this is the binary we are looking for. There's more information, (like 4 interesting 16-bit strings and the path of 3 files), but at this point is not clear what they are used for.
+The first string is an error message `"%s: bytes2base64 failed"`. This gives us the name of one function (bytes2base64), and we can guess that base64 encoding is being used at some point. Right after the string `challenge: %s` tell us that this is the binary we are looking for. There's more information, (like 4 interesting 16-bit strings and the path of 3 files), but at this point is not clear what they are used for.
 
-# Time to start Ghidra
+## Time to start Ghidra
 
 With no idea how the challenge is generated or checked, we need to decompile this little program. Let's start by creating a nee project in Ghidra and importing the binary.
 
@@ -85,7 +105,7 @@ There are some ELF Relocation errors related with the symbols  stderr, optarg, o
 
 Once Ghidra finish analyzing, we can see on left a list of functions. Ghidra doesn't know the function names (we don't have debug symbol available), so the name of the functions will be "FUN_addresslocation", not much fun really (sorry for the bad joke, it's kind of unavoidable).
 
-# Locate interesting functions
+## Locate interesting functions
 
 ![ghidra list of functions](imgs/guide_04.png "Ghidra: List of Functions")
 
@@ -103,7 +123,7 @@ So we have a place to start. Ghidra has a very handy string finder tool, Search 
 
 ![ghidra result of search for strings](imgs/guide_06.png "Ghidra: Results of search for strings")
 
-So there it is, at location 00012299, "challenge: %s\nresponse: ", If we selected it, on the Disassembled Listing view, we can see the following:
+So there it is, at location 00012299, `"challenge: %s\nresponse: "`, If we selected it, on the Disassembled Listing view, we can see the following:
 ```
                              s_challenge:_%s_response:_00012299              XREF[2]:     FUN_00010e80:000111d2(*), 
                                                                                           FUN_00011cec:00011de2(*)  
@@ -158,7 +178,7 @@ undefined * FUN_00011464(size_t *param_1)
 }
 ```
 
-Let's rename FUN_00011464 to get_eeprom_data . FUN_00011924("developer") calls get_eeprom_data(), so it's safe to assume that it will parse that information somehow. If you are still reading, thanks!, remember our first attempt to figure out this madness using the command string?, here is another interesting clue:
+Let's rename `FUN_00011464` to `get_eeprom_data` . `FUN_00011924("developer")` calls `get_eeprom_data()`, so it's safe to assume that it will parse that information somehow. If you are still reading, thanks!, remember our first attempt to figure out this madness using the command ``string``?, here is another interesting clue:
 
 ```
 If you want this to be permanent set
@@ -167,11 +187,11 @@ in uboot env
 successful developer-mode console login
 ```
 
-So we can assume FUN_00011924 parses the eeprom contents to get the value of an uboot env variable. Next is renaming FUN_00011924 to get_uboot_env, and while we are on it, rename param_1 to uboot_env_var. We have already identified 3 functions, not too bad. 
+So we can assume `FUN_00011924` parses the eeprom contents to get the value of an uboot env variable. Next is renaming `FUN_00011924` to `get_uboot_env`, and while we are on it, rename `param_1` to `uboot_env_var`. We have already identified 3 functions, not too bad. 
 
-# FUN_00011cec, the developer challenge giver and receiver.
+## FUN_00011cec, the developer challenge giver and receiver
 
-Let's check now FUN_00011cec, that function also access  the string "challenge: %s\nresponse: " at location 00012299. The part that interests us does the following:
+Let's check now `FUN_00011cec`, that function also access  the string `"challenge: %s\nresponse: "` at location 00012299. The part that interests us does the following:
 1. Generates a  developer ("D") challenge.
 2. Prints the base64 encoded challenge with a leading "B" character and waits for an answer.
 3. Reads a base64 encoded answer and performs basic checks.
@@ -212,7 +232,7 @@ A piece of pseudocode that looks very appealing is the following:
 
 This is something that while obvious to a lot of people, was painfully unknown to me. It took me more time than I care to admit to fully understand what's going in here. But my loos is your gain!, here is a quick overview of how to interpret Ghidra pseudocode.
 
-If Ghidra doesn't know what kind of variable is dealing with, it will interpret the dissasmbled code into a sort of C or c(ish), which if you prononounce quick enough sounds like "fish" (another bad joke, apologies). Here's a while loop that it's accessing data at a maximum of 4 bits at a time to concatenate the string "devoloper" into another variable.
+If Ghidra doesn't know what kind of variable is dealing with, it will interpret the dissasmbled code into a sort of C or c(ish), which sounds like "fish" (another bad joke, apologies). Here's how the string "devoloper" gets copied into a variable maximium 4 bits a time.
 
     puVar5 = (undefined1 *)malloc(__n + 0x1d);
     if (puVar5 != (undefined1 *)0x0) {
@@ -220,18 +240,18 @@ If Ghidra doesn't know what kind of variable is dealing with, it will interpret 
         puVar5[1] = 0x7c;
         memcpy(puVar5 + 2,param_3,__n);
         pcVar12 = puVar5 + __n + 3;
-        pcVar12[0] = 'd';
+        pcVar12[0] = 'd';  <-- [0]
         pcVar12[1] = 'e';
         pcVar12[2] = 'v';
         pcVar12[3] = 'e';
-        pcVar12 = puVar5 + __n + 7;
-        pcVar12[0] = 'l';
+        pcVar12 = puVar5 + __n + 7; <-- moves 4 positions
+        pcVar12[0] = 'l'; <-- [0] again
         pcVar12[1] = 'o';
         pcVar12[2] = 'p';
         pcVar12[3] = 'e';
-        puVar5[__n + 0xb] = 'r';
+        puVar5[__n + 0xb] = 'r'; <-- last bit
 
-And that's my fellow friends in reverse engineering and dump diving is how ARM works!, withouth getting into much detail, memory instructions in ARM assembly take 3+ cycles each. If you see this you can bet your beverage of a choice that you are dealing with an ARM binary. It took me some (a lot) time to realize that there's a better way. Let's put it like this, before starting to code in whatever language what you may think is an elaborate way of using the string "developer" for obscure cryptographic purposes, check your undefinded variables in Ghidra.
+And that's my fellow friends in reverse engineering and dump diving is how ARM works!, withouth getting into much detail, memory instructions in ARM assembly take 3+ cycles each . If you see this you can bet your beverage of a choice that you are dealing with an ARM binary. It took me some (a lot) time to realize that there's a better way. Let's put it like this, before starting to code in whatever language what you may think is an elaborate way of using the string "developer" for obscure cryptographic purposes, check your undefinded variables in Ghidra.
 
 Did I say FIRST check your undefined variables in Ghidra before you make any assumptions? Let's focus on puVar5.
 
@@ -243,7 +263,7 @@ That looks like a unsigned char * to me, so let's try recasting it with Ctrl + L
 
 ![ghidra recast variable](imgs/guide_07.png "Ghidra: Recast variable")
 
-Bare and behold!, that while taking 4 bits at a time has transformed in something more readable (I also renamed puVar5, param_3 and __n for a much dramatic readability effect):
+Bare and behold!, that code taking 4 bits at a time has transformed in something more readable (I also renamed puVar5, param_3 and __n for a much dramatic readability effect):
 
 ```
   challenge_container = (uchar *)malloc(mac_address_len + 0x1d);
@@ -264,20 +284,20 @@ Bare and behold!, that while taking 4 bits at a time has transformed in somethin
      } while (puVar10 != auStack_68);
 ```
 
-Now we have an idea of the structure of the developer challenge:  "D|mac_address|developer|" + something. We also know that FUN_00011cec deals with the developer type of login, so in a display of imagination let's rename it to developer_login. And now we have 4 functions identified, but who is counting right?
+Now we have an idea of the structure of the developer challenge:  ``"D|mac_address|developer|" + something``. We also know that `FUN_00011cec` deals with the developer type of login, so in a display of imagination let's rename it to `developer_login`. And now we have 4 functions identified, but who is counting.
 
-# Going further deep into the rabbit hole that developer_console (AKA FUN_00011cec)
+## Going further deep into the rabbit hole that developer_console (AKA FUN_00011cec)
 
-We have identified the function that does both generating the challenge and checking the answer, at this point a good strategy will be to identify all the functions that our beloved developer_login uses. We have two tools that can help with that , the first one is the  Function Call Graph with its magnificent "Satellite View":
+We have identified the function that does both generating the challenge and checking the answer, at this point a good strategy will be to identify all the functions that our beloved `developer_login` uses. We have two tools that can help with that , the first one is the  Function Call Graph with its magnificent "Satellite View":
 
 ![ghidra function call graph](imgs/guide_08.png "Ghidra: Function Call Graph")
 
-The second tool is the Function Call tree (Window --> Function Call Tree). This tool shows the order in which the functions are called. We can see here that the next unknown function called by developer_login is FUN_00011508, and a quick glance at the pseudocode shows that this function deals with getting a random number from /dev/urandom. Following our crazy naming scheme, let's rename FUN_00011508 to get_urandom. The random number is the last piece of the challenge puzzle. 
+The second tool is the Function Call tree (Window --> Function Call Tree). This tool shows the order in which the functions are called. We can see here that the next unknown function called by `developer_login` is `FUN_00011508`, and a quick glance at the pseudocode shows that this function deals with getting a random number from /dev/urandom. Following our crazy naming scheme, let's rename `FUN_00011508` to `get_urandom`. The random number is the last piece of the challenge puzzle. 
 
 ![ghidra function call tree](imgs/guide_09.png "Ghidra: Function Call Tree")
 
 
-Back to developer_login, we can now rename and retype anything that we need to understand the challnge:
+Back to `developer_login`, this is what it looks like after a few more re-types and renames:
 
 ```
   challenge_container = (uchar *)malloc(mac_address_len + 0x1d);
@@ -298,12 +318,12 @@ Back to developer_login, we can now rename and retype anything that we need to u
      } while ((u_char **)random_number_value != &sha256_char_var);
 ```
 
-Here it is another example of how ARM deals with accesing a 16-bits number, 8-bits at a time. At this point I don't want to keep digging or this guide will be absurdly long. You can have hours of joy with the [ARMv7-M Architecture Reference Manual](https://developer.arm.com/documentation/ddi0403/ee/?lang=en), it has been my companion on some of these past lonely nights.
+Here it is another example of how ARM deals data, this time a 16-bits number. It gets proccesed 8-bits at a time. At this point I don't want to keep digging or this guide will be absurdly long. You can have hours of joy with the [ARMv7-M Architecture Reference Manual](https://developer.arm.com/documentation/ddi0403/ee/?lang=en), it has been my companion on some of these past lonely nights.
 
 ### functions called by developer_login at 00011cec: 
 
 
-Using the Function Call Tree we can quickly jump into each of the unknown function's pseudo code. I'll spare you the (even more than last time) painful details. The following table has info on all the relevant functions used by developer_login. This will come into use later, when all seemed lost and yours truly was about to format his laptop and install [ReactOS](https://reactos.org/getbuilds/) (good thing it can't boot on modern hardware yet, but try it anyway it is majestic).
+Using the Function Call Tree we can quickly jump into each of the unknown function's pseudo code. I'll spare you the (even more than last time) painful details. The following table has info on all the relevant functions used by `developer_login`. This will come into use later, when all seemed lost and yours truly was about to format his laptop and install [ReactOS](https://reactos.org/getbuilds/) (good thing it can't boot on modern hardware yet, but try it anyway it is majestic).
 
 |name|location|notes|
 |:---|:---:|:---|
@@ -323,9 +343,9 @@ We know that one of the parameters for developer_login is the mac address with f
 |:---|:---:|:---|
 |get_mac_address |000118a8|Needs "/sys/class/net/aximac1/address"|
 
-# get_sha256_HMAC (AKA FUN_0001143c) gives us clues, and more Ghidra tips! . 
+## get_sha256_HMAC (AKA FUN_0001143c) gives us clues, and more Ghidra tips!
 
-get_sha256_HMAC turned out to be a blessing in disguise. It's a simple wrapper function for OpenSSL's HMAC(), we can name the parameters according to https://docs.openssl.org/3.0/man3/HMAC/:
+`get_sha256_HMAC` turned out to be a blessing in disguise. It's a simple wrapper function for OpenSSL's HMAC(), we can name the parameters according to https://docs.openssl.org/3.0/man3/HMAC/:
 
 ```
 void get_sha256_HMAC(uchar *destination_md,void *key,int key_len,uchar *data,size_t data_len)
@@ -339,7 +359,7 @@ void get_sha256_HMAC(uchar *destination_md,void *key,int key_len,uchar *data,siz
 }
 ```
 
-The call from developer_login becomes more clear, we can identify the message and the key:
+The call from `developer_login` becomes more clear, we can identify the message and the key:
 
 ```
      b64_challenge_len = base642bytes(answer_b64_dec,__size,challenge_b64_enc,sVar7 - 1);
@@ -354,36 +374,36 @@ The call from developer_login becomes more clear, we can identify the message an
      get_sha256_HMAC(sha256_first_hmac,eeprom_raw + 0x400,0x10,answer_b64_dec,0x10);
 ```
 
-The 16-bit key for our digest is at address 0x400 of the eeprom (eeprom_raw_dump + 0x400,0x10). As for the message, it is the first 16-bits of the answer. If those first bits are different from the stored random_number, it returns 0 and doesn't attempt the SHA256 HMAC calculation. Success! At this point console_login is no longer a secret box that spells outs nonsense, perhaps there's light at the end of the tunnel? 
+The 16-bit key for our digest is at address 0x400 of the eeprom ``(eeprom_raw_dump + 0x400,0x10)``. As for the message, it is the first 16-bits of the answer. If those first bits are different from the stored random_number, it returns 0 and doesn't attempt the SHA256 HMAC calculation. Success! At this point console_login is no longer a secret box that spells outs nonsense, perhaps there's light at the end of the tunnel? 
 
-There's another Ghidra feature that can help with the pseudo code. There are some variables that will get used for different functions along the program, so just naming them doesn't really give you a full picture. From our (by now very familiar) developer_login example above, the avid Ghidra user/github reader may have noticed that b64_challange_len at some point is the length of a base64 decoded string, and a few lines later is used to hold either a 0 or 1 in a memory compare operation. We can Split it out as new variable (right click on a var name --> Split Out as a New Variable)
+There's another Ghidra feature that can help with the pseudo code. There are some variables that will get used for different functions along the program, so just naming them doesn't really give you a full picture. From our (by now very familiar) `developer_login` example above, the avid Ghidra user/github reader may have noticed that `b64_challange_len` at some point is the length of a base64 decoded string, and a few lines later is used to hold either a 0 or 1 in a memory compare operation. We can Split it out as new variable (right click on a var name --> Split Out as a New Variable)
 
 ![ghidra split out new variable](imgs/guide_10.png "Ghidra: Split Out new Variable")
 
-# The hard truth about types
+## The hard truth about types
 
-So we are almost ready to start coding something, but before moving on, a cautionary tale about types. This may save you hours (days, weeks, months even!) in your future reverse engineering projects. We had established that before making assumptions it is best to identify the type of variables that we are dealing with, that will clear the pseudo code view. And we are doing it, so give yourself a round of applause. In the specifc case of get_sha256_hmac we have an unsigned char *  eeprom_raw  that holds the key parameter, as much as a name as an important milestone (yeap, another bad joke). We understand the concept of eeprom_raw + 0x400,0x10 an we move along right?.
+We are almost ready to start coding something. But before moving on, a cautionary tale about types. This may save you hours (days, weeks, months even!) in your future reverse engineering projects. We had established that before making assumptions it is best to identify the type of variables that we are dealing with, that will clear the pseudo code view. And we are doing it, so give yourself a round of applause. In the specifc case of `get_sha256_hmac` we have an unsigned ``char *  eeprom_raw``  that holds the key parameter, as much as a name as an important milestone (yeap, another bad joke). We understand the concept of ``eeprom_raw + 0x400,0x10`` an we move along right?.
 
-Things could have been different, imagine for a moment that eeprom_raw it's typed as a byte[4]*. A char is one byte, and one byte "should be" 8 bits (check limits.h, macro CHAR_BIT has a default value of 8). So look how  get_ssha256_hmac gets called by developer_login in the pseudocode now:
+Things could have been different, imagine for a moment that `eeprom_raw` it's typed as a byte[4]*. A char is one byte, and one byte "should be" 8 bits (check limits.h, macro CHAR_BIT has a default value of 8). So look how  `get_ssha256_hmac` gets called by `developer_login` in the pseudocode now:
 
 ![ghidra dissasambled view](imgs/guide_11.png "Ghidra: Dissasambled View")
 
-It looks like our 16-bit key is stored at address 0x100 in the eeprom (instead of 0x400), so we move on and start coding. Only to cry in despair later, when console_login is laughing at our punny attempts to resolve the challenge with the wrong key. Type miscasting is one of the dangers of this hobby, be on the look my fellow tinkerers!. It took me time (days) to realize this, please look at the Disassembled view! (Window --> Disassembled View), the value there is 0x400 as it should. In fact, leave that Disassembled View there from now on, you'll live longer.
+It looks like our 16-bit key is stored at address `0x100` in the eeprom (instead of `0x400`), so we move on and start coding. Only to cry in despair later, when console_login is laughing at our punny attempts to resolve the challenge with the wrong key. Type miscasting is one of the dangers of this hobby, be on the look my fellow tinkerers!. It took me time (days) to realize this, please look at the Disassembled view! (Window --> Disassembled View), the value there is 0x400 as it should. In fact, leave that Disassembled View there from now on, you'll live longer.
 
-# Putting it all together, the mighty developer answer
+## Putting it all together, the mighty developer answer
 
 It took some time to reach this point. Among other things, there have been laughters, tears, nightmares and exploration of alternate OS. But we know what's going on inside console_login, is not longer a black box (at list when developer=true):
 
-1. Generates a challenge with the following structure "D|<mac address, field separated by '-'>|developer|16 bit random number
+1. Generates a challenge with the following structure "D|<mac address, field separated by '-'>|developer|16-bit random number
 2. Generates an expected answer, and compares it with the one given at stdin
 
 After clearing a bit undefined variables, we know that the developer answer format! (it's ok to pause for a moment here):
 
-16 bits random number + 32 bits HMAC digest. 
+16-bit random number + 32-bit HMAC digest. 
 
 For the HMAC recipe, we need 3 ingredients, show bellow in woderfull Ghidra pseudo-code:
 
-1. 32 bits sha256 hmac digest of the challenge's random number,  using a 16 bits key stored at address 0x400 of the device's eeprom.
+1. 32-bit sha256 hmac digest of the challenge's random number, using a 16-bit key stored at address 0x400 of the device's eeprom.
 ```
   get_sha256_HMAC(sha256_first_hmac,eeprom_raw + 0x400,0x10,answer_b64_dec,0x10);
 ```
@@ -399,14 +419,14 @@ memcpy(composed_challenge_msg+0x10,mac_address,mac_address_len);
 memcpy(composed_challenge_msg+(0x10+mac_address_len),secret_part_2,0x10);
 ```
 
-3. 32 bits sha256 hmac digest of the message, using the first sha256 digest as a key.
+3. 32-bit sha256 hmac digest of the message, using the first sha256 digest as a key.
 ```
   get_sha256_HMAC(sha256_answer_hmac,sha256_first_hmac,0x20,composed_answer_msg,(mac_address_len + 0x20));
 ```
 
 So that's it!, we can finally start implementing this, we have the technology we can make it better, faster!. We have a clear understanding of the answer ,and it should work right? Well it didn't. At this point any sane person will give up, and keep on living. So I guess I need to visit a shrink because I continued torturing myself (remember my dear electronic dwellers, we don't really need this to modify the firmware, we own uboot).
 
-# Tears, back pain and qemu
+## Tears, back pain and qemu
 
 At this point the situation was not looking good. I had a few  program test running (I tried several languages before C), but everytime that I make a change, this was the workflow:
 
@@ -417,7 +437,7 @@ At this point the situation was not looking good. I had a few  program test runn
 
 Clearly that plan was not gonna work, so what about running console_login outside of it's natural enviroment? can qemu shine a light and help us navigate the deep waters of console_login internals? You bet it can, using good old "chroot".
 
-# Fooling console_login and laughing back at it (setting up an ARM chroot enviroment)
+## Fooling console_login and laughing back at it (setting up an ARM chroot enviroment)
 
 This step is easy, we already have an ARM chroot enviroment courtesy of https://github.com/neggles/mist-ap41 
 ```
@@ -427,7 +447,7 @@ cp /usr/bin/qemu-arm-static rootfs2/bin/
 sudo chroot rootfs2/ qemu-arm-static /bin/sh
 ```
 
-That's it, no docker, cloud, spinning VMs or SaaS shennanigans. But console_login knows!, if we try to run it laughs and returns 1
+That's it, the  no docker, cloud, spinning VMs or SaaS shennanigans. But console_login knows!, if we try to run it laughs and returns 1
 
 ```
 / # console_login root
@@ -481,7 +501,7 @@ So now let's try again console_login:
 
 Tears again, this time from hapiness my ARM hard rocking amigos. We can now test console_login in different ways, away from the original hardware. That's right, you can also expirience the joy and the worm feeling of added security that console_login has to offer, in the confort of your own hardware!. And since /dev/urandom has a known value, the challenge is always the same, this is great for testing.
 
-# Getting even more back at console_login with gdb 
+## Getting even more back at console_login with gdb 
 
 For gdb to work properly, we need to mount proc inside our chroot enviroment:
 ```
@@ -630,14 +650,14 @@ Thread 1 "console_login" received signal SIGINT, Interrupt.
 (gdb)
 ```
 
-What a glourous view at location 0x24170! This is the msg generated to check if the answer is correct, so we were right about that part too. After an unsuscesfull operation 0x24170 should have been freed, but it aint. This helped me further troubleshoot my first attempts at cracking the challenge, I was sending extra NULL characters in this case aswell. 
+What a gorgeous view at location 0x24170! The message generated to check if the answer is correct. We were right about that part too. What happeed is that after an unsuccessful operation the memory address 0x24170 should have been freed, but it wasn't. This helped me further troubleshoot my first attempts at cracking the challenge, I was sending extra NULL characters in this case aswell (a bit is still a bit, even if it's '\0').
 
-# Conclusion
+## Conclusion
 
 So my compadres and comadres in bit counting, we have learned a lot of valiuable lessons!, but I will just hihglight 3:
 
 1. Ghidra pseudo code it's a very valuable tool, but it's an educated guess. Check your undefined variables against the Dissambled View and make sure it make sense (0x100 is not the same as 0x400)
-2. malloc, memcpy and alike are great, it's one of the reasons C is so funny, but don't forget about free. valgrind -s --leak-check=full it's your friend in this situation.
+2. malloc, memcpy and alike are great, it's one of the reasons C is so funny. But don't forget (whenever possible)about free, you can use ``valgrind -s --leak-check=full`` against your binary to check for leaks. 
 3. gdb is a beast of a tool, I'm only showing the very basic commands that got me through this. 
 
 console_login laughs no more, this has been a fun trip. 
