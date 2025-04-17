@@ -47,26 +47,31 @@ unsigned char* hex_string_to_bytes(const char* hex_string, size_t* out_len) {
     }
     
     *out_len = len / 2;
+
     unsigned char* bytes = calloc(*out_len, sizeof(int));
     unsigned char* bit = calloc(1, sizeof(int));
+
     if (!bytes) {
         fprintf(stderr, "Error: Couldn't allocate memory\n");
         return NULL;
     }
     
     for (size_t i = 0; i < *out_len; i++) {      
-        
-        char b1_test[3] = {hex_string[i*2+1], '\0'};
+
+        char bit_for_test[3] = {hex_string[i*2+1], '\0'};
         char byte_str[3] = {hex_string[i*2], hex_string[i*2+1], '\0'};
-        bit[0] = (unsigned char)strtol(b1_test, NULL, 16);
+
+        bit[0] = (unsigned char)strtol(bit_for_test, NULL, 16);
         bytes[i] = (unsigned char)strtol(byte_str, NULL, 16);
         
         if( (bytes[i] == '\0' || bit[0] == '\0') && ( strcmp(byte_str,"00") != 0 ) ){
             fprintf(stderr, "Error: hex string %s contains an invalid character %s at position %d\n",hex_string, byte_str, (int)i);
+            free(bit);
+            free(bytes);
             return NULL;
         }
     }
-    
+    free(bit);    
     return bytes;
 }
 

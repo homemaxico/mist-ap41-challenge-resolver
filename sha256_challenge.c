@@ -186,7 +186,7 @@ int main(int argc, char* argv[]) {
                 developer_key =  hex_string_to_bytes(sha256_stdin_key, &key_len);
                 if (developer_key == NULL){
                     if (info == 1){
-                        printf("Error: Invalid key %s\n", sha256_stdin_key);
+                        printf("Error: Invalid key %s for option -K, exiting\n", sha256_stdin_key);
                     }
                     return 1;
                 }
