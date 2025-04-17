@@ -274,6 +274,11 @@ We have identified the function that does both generating the challenge and chec
 
 The second tool is the Function Call tree (Window --> Function Call Tree). This tool shows the order in which the functions are called. We can see here that the next unknown function called by developer_login is FUN_00011508, and a quick glance at the pseudocode shows that this function deals with getting a random number from /dev/urandom. Following our crazy naming scheme, let's rename FUN_00011508 to get_urandom. The random number is the last piece of the challenge puzzle. 
 
+![ghidra function call tree](imgs/guide_09.png "Ghidra: Function Call Tree")
+
+
+Back to developer_login, we can now rename and retype anything that we need to understand the challnge:
+
 ```
   challenge_container = (uchar *)malloc(mac_address_len + 0x1d);
   if (challenge_container != (uchar *)0x0) {
@@ -293,13 +298,12 @@ The second tool is the Function Call tree (Window --> Function Call Tree). This 
      } while ((u_char **)random_number_value != &sha256_char_var);
 ```
 
-We can see another example of how ARM deals with accesing a 16-bits number 8-bits at a time. At this point I don't want to keep digging or this guide will be absurdly long. You can have hours of joy with the [ARMv7-M Architecture Reference Manual](https://developer.arm.com/documentation/ddi0403/ee/?lang=en), it has been my companion on some of these past nights.
-
-![ghidra function call tree](imgs/guide_09.png "Ghidra: Function Call Tree")
-
-Using the Function Call Tree we can quickly jump into each of the unknown function's pseudo code. I'll spare you the (even more than last time) painful details. The following table has info on all the relevant functions used by developer_login. This will come into use later, when all seemed lost and yours truly was about to format his laptop and install [ReactOS](https://reactos.org/getbuilds/) (good thing it can't boot on modern hardware yet, but try it anyway it is majestic).
+Here it is another example of how ARM deals with accesing a 16-bits number, 8-bits at a time. At this point I don't want to keep digging or this guide will be absurdly long. You can have hours of joy with the [ARMv7-M Architecture Reference Manual](https://developer.arm.com/documentation/ddi0403/ee/?lang=en), it has been my companion on some of these past lonely nights.
 
 ### functions called by developer_login at 00011cec: 
+
+
+Using the Function Call Tree we can quickly jump into each of the unknown function's pseudo code. I'll spare you the (even more than last time) painful details. The following table has info on all the relevant functions used by developer_login. This will come into use later, when all seemed lost and yours truly was about to format his laptop and install [ReactOS](https://reactos.org/getbuilds/) (good thing it can't boot on modern hardware yet, but try it anyway it is majestic).
 
 |name|location|notes|
 |:---|:---:|:---|
