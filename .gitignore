@@ -4,3 +4,4 @@
 sha256_challenge
 fake_eeprom.bin
 *dump.bin
+tools/sudo_gdb

@@ -52,7 +52,11 @@ int main(int argc, char *argv[]) {
     // Check if we're running as root
     if (geteuid() != 0) {
         printf("GDB often requires root privileges for debugging.\n");
-   
+
+        for (int i = 1; i < argc; i++) {
+            printf("ARG: %s\n", argv[i]);
+        }
+
         // Ask for sudo password
         char password[256];
         get_password(password, sizeof(password));
@@ -105,42 +109,71 @@ int main(int argc, char *argv[]) {
         char *set_args = (char*)malloc(256);
         char *full_arm_path = (char*)malloc(256);
 
+        char *gdb_opt = (char*)malloc(256);
+
+        strcat(gdb_opt,"  ");
+
         for (int i = 1; i < argc; i++) {
+            strcat(gdb_opt," ");
 
-            if ( memcmp(argv[i],"file",4) == 0){
-                strcat(sudo_cmd," ");
-                arm_bin = basename(argv[i+1]);
-                memcpy(chroot_path, argv[i+1], (strlen(argv[i+1]) - strlen(arm_bin) - strlen("/bin/") ));                
-                argv[i] = "file /usr/sbin/chroot";
-                argv[i+1] = "";
-                strcat(sudo_cmd, "'");
-                strcat(sudo_cmd,argv[i]);
-                strcat(sudo_cmd, "'");
+            if ( memcmp(argv[i],"file", 4) == 0){
+                //ARG: file "/home/homemaxico/codigo/mist-ap41/ubidump/rootfs2/bin/console_login"
+                if (strlen(argv[i]) <5){
+                    arm_bin = basename(argv[i+1]);
+                    memcpy(chroot_path, argv[i+1], (strlen(argv[i+1]) - strlen(arm_bin) - strlen("/bin/") ));                
+                    argv[i] = "file /usr/sbin/chroot";
+                    argv[i+1] = "";
+                    strcat(gdb_opt, "'");
+                    strcat(gdb_opt,argv[i]);
+                    strcat(gdb_opt, "'");
+                }else{
+                    printf("Ghidra fix\n");
+                    strcat(gdb_opt," ");
+                    char* ghidra_file_opt = argv[i]+5;
+                    arm_bin = basename(ghidra_file_opt);
+                    memcpy(chroot_path, ghidra_file_opt, (strlen(ghidra_file_opt) - strlen(arm_bin) - strlen("/bin/") ));                
+                    strcat(gdb_opt, "'");
+                    strcat(gdb_opt, "file");
+                    strcat(gdb_opt, " ");
+                    strcat(gdb_opt, "/usr/sbin/chroot");
+                    strcat(gdb_opt, "'");
+                    strcat(gdb_opt, " ");
 
-            }else        
+                }
+
+            }else   // Ghydra Fix too , it outputs an extra \"!     
             if ( memcmp(argv[i],"set args ",9)==0){
-                strcat(sudo_cmd," ");
-                strcat(sudo_cmd, "'");
+                strcat(gdb_opt," ");
+                strcat(gdb_opt, "'");
                 int len_args = (strlen(argv[i]) - strlen("set args "));
-                strcat(sudo_cmd, "set args ");
-                strcat(sudo_cmd, chroot_path);
-                strcat(sudo_cmd, " qemu-arm-static /bin/");
-                strcat(sudo_cmd, arm_bin);
-                strcat(sudo_cmd," ");
-                memcpy(sudo_cmd+(strlen(sudo_cmd)), argv[i]+strlen("set args "),len_args+strlen("/bin/"));
-                strcat(sudo_cmd, "'");
-
+                strcat(gdb_opt, "set args");
+                strcat(gdb_opt," ");
+                strcat(gdb_opt, chroot_path);
+                strcat(gdb_opt, "\"");
+                strcat(gdb_opt," ");
+                strcat(gdb_opt, "\"");
+                strcat(gdb_opt, "qemu-arm-static");
+                strcat(gdb_opt, "\"");
+                strcat(gdb_opt," ");
+                strcat(gdb_opt, "\"");
+                strcat(gdb_opt, "/bin/");
+                strcat(gdb_opt, arm_bin);
+                strcat(gdb_opt," ");
+                strcat(gdb_opt, "\"");
+                memcpy(gdb_opt+(strlen(gdb_opt)), argv[i]+(strlen("set args")+1),len_args+strlen("/bin/"));
+                strcat(gdb_opt, "\"");
+                strcat(gdb_opt, "'");
             }else
-            if (argv[i]!=""){
-                strcat(sudo_cmd, " ");            
-                strcat(sudo_cmd, "'");
-                strcat(sudo_cmd,argv[i]);
-                strcat(sudo_cmd, "'");
+            {            
+                strcat(gdb_opt, "'");
+                strcat(gdb_opt,argv[i]);
+                strcat(gdb_opt, "'");
             }
             
         }
-        
-        
+        strcat(gdb_opt, " ");
+        strcat(sudo_cmd,gdb_opt);
+            
         // Append commands to remove temp files at the end
         strcat(sudo_cmd, "; rm -f ");
 
