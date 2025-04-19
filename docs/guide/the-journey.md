@@ -424,7 +424,7 @@ memcpy(composed_challenge_msg+(0x10+mac_address_len),secret_part_2,0x10);
   get_sha256_HMAC(sha256_answer_hmac,sha256_first_hmac,0x20,composed_answer_msg,(mac_address_len + 0x20));
 ```
 
-So that's it!, we can finally start implementing this, we have the technology we can make it better, faster!. We have a clear understanding of the answer ,and it should work right? Well it didn't. At this point any sane person will give up, and keep on living. So I guess I need to visit a shrink because I continued torturing myself (remember my dear electronic dwellers, we don't really need this to modify the firmware, we own uboot).
+So that's it!, we can finally start coding, we have the technology, we can make it better, faster!. We have a clear understanding of the answer, and it should work right? Well it didn't. At this point any sane person will give up, and keep on living. So I guess I need to visit a shrink because I continued torturing myself (remember my dear electronic dwellers, we don't really need this to modify the firmware, we own uboot).
 
 ## Tears, back pain and qemu
 
@@ -499,11 +499,11 @@ So now let's try again console_login:
     challenge: BRHwxMS0yMi0zMy00NC01NS02NnxkZXZlbG9wZXJ8qrvM3e7/qqusra6vuru8vQ==
     response: 
 
-Tears again, this time from hapiness my ARM hard rocking amigos. We can now test console_login in different ways, away from the original hardware. That's right, you can also expirience the joy and the worm feeling of added security that console_login has to offer, in the confort of your own hardware!. And since /dev/urandom has a known value, the challenge is always the same, this is great for testing.
+Tears again, this time from hapiness my ARM hard rocking amigos. We can now test console_login in different ways, away from the original AP. That's right, you can also expirience the joy and the worm feeling of added security that console_login has to offer, in the confort of your own hardware!. And since /dev/urandom has a known value (the challenge will be always the same), wonderful for testing!.
 
 ## Getting even more back at console_login with gdb 
 
-For gdb to work properly, we need to mount proc inside our chroot enviroment:
+For gdb to work properly, we need to mount proc inside our chroot enviroment before starting console_login: 
 ```
 / # mkdir /proc
 / # mount proc /proc -t proc
@@ -528,6 +528,7 @@ Missing rpms, try: dnf --enablerepo='*debug*' install qemu-user-static-arm-debug
 
 I don't know about you, but I've never start a gdb session witouth set detach-on-fork off and set follow-fork-mode child options. If console_login tries to escape by launching another thread, gdb will follow. Next step is to check the memory mappings.
 
+#### console_login memory mappings
 ```
 (gdb) info proc mappings
 process 74584
@@ -566,6 +567,7 @@ Start Addr         End Addr           Size               Offset             Perm
 
 Seems that 0x24000 is our sweet memory spot. We can have a peak with x/3000s 0x24000. Ghidra also agrees, 0x24000 shows as the EXTERNAL section in the Memory Map (Window --> Memory Map)
 
+#### console_login Memory Map
 ![ghidra memory map](imgs/guide_12.png "Ghidra: Memory Map")
 
 
@@ -632,7 +634,7 @@ Value = -1333414416
 
 Placing different watchpoint and checking the memory contents it's a terrific way to get more information. In my tests I found out that I was sending an extra null character before the random number, so get_sha_256_hmac wasn't called to begin with. 
 
-But our friend console_login has a behaviour that works in our advantage (who is laughing now!). If the developer answer is incorrect, the main thread continues and generates a type A challenge with a different structure. At this point I can pretty much tell by memory the Ghidra pseudo code for developer_login, and there are some malloc here and there, but not any free(). So if we hit Ctrl + C after a wrong developer answer while gdb is listening:
+But our friend console_login has a behaviour that works in our advantage (who is laughing now!). If the developer answer is incorrect, the main thread continues and generates a type A challenge with a different structure. At this point I can pretty much tell by memory the Ghidra pseudo code for developer_login, and there are some malloc here and there, but not any free(). So if we hit Ctrl + C after a wrong developer answer while gdb is listening '(x/1s 0x24170)':
 
 ```
 challenge: BRHwxMS0yMi0zMy00NC01NS02NnxkZXZlbG9wZXJ8qrvM3e7/qqusra6vuru8vQ==
@@ -652,12 +654,49 @@ Thread 1 "console_login" received signal SIGINT, Interrupt.
 
 What a gorgeous view at location 0x24170! The message generated to check if the answer is correct. We were right about that part too. What happeed is that after an unsuccessful operation the memory address 0x24170 should have been freed, but it wasn't. This helped me further troubleshoot my first attempts at cracking the challenge, I was sending extra NULL characters in this case aswell (a bit is still a bit, even if it's '\0').
 
-## Conclusion
+## Conclusion, dumping the ram for the sake of it
+
+
+We got it, console_login has been defeted. But we could have done things differently, a few less tears and screams here and there perhaps. Once we fooled console_login into work under chroot, we can dump the ram at any moment. We know from [console_login memory mappings](#console_login-memory-mappings) and [Ghydra Memory Map](#console_login-memory-map) how the memory allocation looks like, let's grab a big enough chunk:
+
+```
+(gdb) dump memory bad_answer_ram_dump.bin 0x10000 0x28000
+```
+
+Now we have a handy file that we can map to our pseudo-code. Let's look a bit closer to function 'get_eeprom_data'
+
+![ghidra get_eeprom_data](imgs/guide_13.png "Ghidra: get_eeprom_data")
+
+It returns a data type `DAT_23118` , that's location `0x23118` in memory. We have a dump of the memory address starting at `0x10000`, that means that in our file `DAT_23118` points to ``(0x23118 - 0x10000) = 0x13118``
+
+![hexedit bad_answer_ram_dump.bin](imgs/guide_14.png "Hexedit: bad_answer_ram_dump.bin")
+
+And there you have it!, the contents of our eeprom stares back at us. We could had started from the begining with this, import both the ram and console_login before starting the anylisis, and who knows, maybe all this would have been faster. 
+
+Let's have a look at the end of memory in the Listing view and the Memory Map Tool
+
+![ghidra listing and memory map](imgs/guide_15.png "Ghidra: Listing and Memory Map")
+
+For Ghidra the memory ends at `0x240db`. If we have known better we could override some things like the memory settings, but we can fix that now with the Memory Map tool
+
+![ghidra listing and memory map](imgs/guide_15.png "Ghidra: Listing and Memory Map")
+
+First we need to expand the external block and make it big enough to end at `0x3000`
+
+![ghidra expanding memory region](imgs/guide_16.png "Ghidra: Memory Map expand memory region")
+
+Now we can attach a debugger to Ghidra, we need a wraper to start our target inside the chroot enviroment
+
+```
+TODO: sudo_gbd.c in tools works but not in all conditions.
+```
+
+
 
 So my compadres and comadres in bit counting, we have learned a lot of valiuable lessons!, but I will just hihglight 3:
 
 1. Ghidra pseudo code it's a very valuable tool, but it's an educated guess. Check your undefined variables against the Dissambled View and make sure it make sense (0x100 is not the same as 0x400)
-2. malloc, memcpy and alike are great, it's one of the reasons C is so funny. But don't forget (whenever possible)about free, you can use ``valgrind -s --leak-check=full`` against your binary to check for leaks. 
+2. malloc, memcpy and alike are great, it's one of the reasons C is so funny. But don't forget (whenever possible) about free, you can use ``valgrind -s --leak-check=full`` against your binary to check for leaks. 
 3. gdb is a beast of a tool, I'm only showing the very basic commands that got me through this. 
 
 console_login laughs no more, this has been a fun trip. 
