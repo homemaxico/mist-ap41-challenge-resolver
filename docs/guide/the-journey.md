@@ -691,6 +691,25 @@ Now we can attach a debugger to Ghidra, we need a wraper to start our target ins
 TODO: sudo_gbd.c in tools works but not in all conditions.
 ```
 
+![ghidra could not read target registers](imgs/guide_17.png "Ghidra: Something")
+
+
+
+![ghidra could not read target registers](imgs/guide_18.png "Ghidra: could not read target registers")
+
+```
+TODO: Coould we set the target regsters?<>
+```
+
+![ghidra vs gdb](imgs/guide_19.png "Ghidra: Ghidra vs GDB registers")
+
+
+![ghidra map modules](imgs/guide_20.png "Ghidra: Ghidra Map Modules")
+
+```
+TODO: does this work?
+```
+
 
 
 So my compadres and comadres in bit counting, we have learned a lot of valiuable lessons!, but I will just hihglight 3:

