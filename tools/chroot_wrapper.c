@@ -49,7 +49,7 @@ void get_password(char *password, size_t size) {
 // Function to check config files for binary settings
 // Returns 1 if found, 0 if not found
 int check_config_files(const char *binary_name, char *chroot_dir, size_t chroot_dir_size, 
-        char *arm_binary, size_t arm_binary_size) {
+        char *arm_binary) {
     FILE *config_file = NULL;
     char line[1024];
     char config_path[1024];
@@ -92,7 +92,6 @@ int check_config_files(const char *binary_name, char *chroot_dir, size_t chroot_
         
             if (strncmp(binary_name, line, first_field_len) == 0 && 
                 binary_name[first_field_len] == '\0') {
-                    printf("found!\n");
                 
                 // Found a match, extract fields
                 const char *second_field = colon + 1;
@@ -115,7 +114,18 @@ int check_config_files(const char *binary_name, char *chroot_dir, size_t chroot_
     return 0;
 }
 
-int fork_chroot(char* command_args, char* chroot_dir, char* full_binary_path){
+struct chroot_wrap {
+    char *binary_name2;
+    char *binary_args2;
+    char *chroot_dir2;
+    char *qemu_cmd;
+    uint8_t has_config;
+    uint8_t proc_is_there;
+    uint8_t proc_is_mounted;
+}chroot_wrap;
+
+
+int fork_chroot(struct chroot_wrap* st){
 
     
     // Fork a child process
@@ -131,39 +141,71 @@ int fork_chroot(char* command_args, char* chroot_dir, char* full_binary_path){
 
         // Prepare arguments for execv
         // We need: qemu-arm-static, binary path and all remaining arguments
-        char *new_args = calloc(7, sizeof(char*));
-        
+        char *new_args2 = malloc(80);
 
-        strcat(new_args, "sshpass -P \"[sudo]\" sudo chroot ");          
-        strcat(new_args, chroot_dir);
-        strcat(new_args, " /bin/stty echo&& ");
-        strcat(new_args, "sudo chroot  ");
-        strcat(new_args, chroot_dir);
-        strcat(new_args, " /usr/bin/qemu-arm-static ");
-        strcat(new_args, full_binary_path);
-        strcat(new_args, " ");
-        strcat(new_args, command_args);
+        if (new_args2 == NULL) {
+            return 1;
+        }
+        new_args2[0] ='\0';
+
+
+        strcpy(new_args2, "sshpass -P \"[sudo]\" sudo chroot ");
+        strcat(new_args2, st->chroot_dir2);
+        strcat(new_args2, " ");
+        strcat(new_args2, st->qemu_cmd);
+        strcat(new_args2, " ");
+        //Enable echo on sttdin and continue
+        strcat(new_args2, "/bin/stty echo &&  sudo chroot ");
+        strcat(new_args2, st->chroot_dir2);
+        strcat(new_args2, " ");
+        strcat(new_args2, st->qemu_cmd);
+        strcat(new_args2, " ");
+
+        if (st->proc_is_there == 0){            
+            strcat(new_args2, "/bin/mkdir /proc &&  sudo chroot ");
+            strcat(new_args2, st->chroot_dir2);
+            strcat(new_args2, " ");
+            strcat(new_args2, st->qemu_cmd);
+            strcat(new_args2, " ");            
+        }
         
+        if (st->proc_is_mounted == 0){
+            strcat(new_args2, "/bin/mount -t proc /proc/ && sudo  chroot ");
+            strcat(new_args2, st->chroot_dir2);
+            strcat(new_args2, " ");
+            strcat(new_args2, st->qemu_cmd);
+            strcat(new_args2, " ");
+        }
         
-        execlp("bash", "bash", "-x", "-c", new_args, NULL);
+        //Final sudo execution of chroot
+        strcat(new_args2, st->binary_name2);
+        strcat(new_args2, " ");
+        strcat(new_args2, st->binary_args2);
+
+        //Only try to unmount /proc if we mounted in the first place
+        if (st->proc_is_mounted == 1){
+            strcat(new_args2, "&& echo 'Warning: Sudo password may be required again!' && sudo  ");
+            strcat(new_args2, st->chroot_dir2);
+            strcat(new_args2, " ");
+            strcat(new_args2, st->qemu_cmd);
+            strcat(new_args2, " ");
+            strcat(new_args2, "/bin/umount /proc");
+        }
+
+                
+        execlp("bash", "bash", "-x", "-c", new_args2, NULL);
+        free(st);
         
-        // If we get here, execv failed
-        
+        // If we get here, execv failed        
+        free(new_args2);
         perror("execv failed");
-        free(new_args);
 
-        // Try to unmount /proc before exiting
-        //umount("/proc");
         exit(1);
     } else {
         // Parent process, the child has stopped
         int status;
         waitpid(pid, &status, 0);
 
-        // Try to unmount /proc from outside the chroot
-        char parent_proc_path[2048];
-        snprintf(parent_proc_path, sizeof(parent_proc_path), "%s/proc", chroot_dir);
-        umount(parent_proc_path); // Ignore errors as the child might have already unmounted it
 
         if (WIFEXITED(status)) {
             printf("Child exited with status %d\n", WEXITSTATUS(status));
@@ -178,43 +220,65 @@ return 0;
 
 }
 
+
+
 int main(int argc, char *argv[]) {
-    const char *chroot_dir = NULL;
-    const char *arm_binary = NULL;
+
     char config_chroot_dir[1024] = {0};
     char config_arm_binary[1024] = {0};
-    
+
+    struct chroot_wrap *chroot_st = malloc(sizeof(struct chroot_wrap));
+
     // Get the binary name from argv[0]
     char *binary_name = basename(argv[0]);
-    int has_config = 0;
+    chroot_st->has_config = 0;
+    chroot_st->proc_is_there = 0;
+    chroot_st->proc_is_mounted = 0;
+
+    // Calculate required space: length of "/bin/" + length of binary2 + 1 for null terminator
+    int path_len = strlen("/bin/") + strlen(binary_name) + 1;
+
+    // Allocate memory for the full path
+    chroot_st->binary_name2 = malloc(path_len);
+    
+    if (!chroot_st->binary_name2) {
+        // Handle allocation failure
+        return 1;
+    }
+
+    chroot_st->qemu_cmd = " /usr/bin/qemu-arm-static ";
+        
     
     // Check if we have a configuration for this binary
     if (check_config_files(binary_name, config_chroot_dir, sizeof(config_chroot_dir),
-                          config_arm_binary, sizeof(config_arm_binary)) == 1) {
-        chroot_dir = config_chroot_dir;
-        arm_binary = config_arm_binary;
-        has_config = 1;
-        printf("chroot_dir: %s\n", chroot_dir);
-        printf("arm_binary: %s\n", arm_binary);
-        printf("Has_config: %d\n", has_config);
+                            config_arm_binary) == 1) {
 
+        chroot_st->has_config = 1;
+
+        sprintf(chroot_st->binary_name2, "/bin/%s", config_arm_binary);
+        
+        chroot_st->chroot_dir2 = config_chroot_dir;
+        chroot_st->binary_args2 = argv[1]; //TODO FIX: This will probably only work for one arg but let's start somewehere 
+        chroot_st->has_config = 1;
+    
     }else{ 
         // No config found, check command line arguments
         
-        if ( (&has_config == 0) && (argc < 3) ) {
+        if ( (chroot_st->has_config == 0) && (argc < 3) ) {
             fprintf(stderr, "Usage: %s <chroot-dir> <arm-binary> [args...]\n", argv[0]);
-            for (int i = 1; i < argc; i++) {
-                printf("argv[%d]: %s\n", i, argv[i]);
-                printf("has_config: %d\n", has_config);
-            
-            }
             return 1;
         }
     }
     
-    if (has_config == 0){ 
-        chroot_dir = argv[1];
-        arm_binary = argv[2];
+    if (chroot_st->has_config == 0){ 
+
+        chroot_st->chroot_dir2 = argv[1];
+        sprintf(chroot_st->binary_name2, "/bin/%s", argv[2]);
+
+        chroot_st->binary_args2 = argv[3];
+
+        //chroot_dir = argv[1];
+        //arm_binary = argv[2];
     }
     
     // Check if we're running as root
@@ -225,13 +289,10 @@ int main(int argc, char *argv[]) {
         // Build a command that will run this program with sudo
         char arm_args[8192] = {0};
 
-       // Create full path with /bin/ prefix
-       char full_binary_path[1024];
-       snprintf(full_binary_path, sizeof(full_binary_path), "/bin/%s", arm_binary);
         
        // Create directory for /proc in chroot if it doesn't exist
        char proc_dir[2048];
-       snprintf(proc_dir, sizeof(proc_dir), "%s/proc", chroot_dir);
+       snprintf(proc_dir, sizeof(proc_dir), "%s/proc", chroot_st->chroot_dir2);
         
        struct stat st = {0};
        if (stat(proc_dir, &st) == -1) {
@@ -240,18 +301,17 @@ int main(int argc, char *argv[]) {
                perror("Failed to create /proc directory in chroot");
                return 1;
            }
+       }else{
+        chroot_st->proc_is_there = 1;
        }
        // Check if /proc is mounted
+       
        strcat(proc_dir,"/cmdline");
-       if (stat(proc_dir, &st) == -1) {
-           // Try to mount proc filesystem
-           if (mount("proc", "/proc", "proc", 0, NULL) != 0) {
-               perror("Failed to mount /proc");
-               exit(1);
-           }
+       
+       if (stat(proc_dir, &st) != -1) {
+        chroot_st->proc_is_mounted = 1;
        }
 
-        
         // Append the current program and all its args, properly escaped
         //strcat(arm_args, argv[0]);
         
@@ -263,7 +323,7 @@ int main(int argc, char *argv[]) {
 
     
         disable_echo();
-        fork_chroot(arm_args,(char*)chroot_dir,full_binary_path);      
+        fork_chroot(chroot_st);      
         
         
 
