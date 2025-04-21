@@ -6,3 +6,4 @@ fake_eeprom.bin
 *dump.bin
 tools/sudo_gdb
 tools/chroot_wrapper
+tools/console_login
