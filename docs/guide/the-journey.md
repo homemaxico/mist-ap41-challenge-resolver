@@ -652,7 +652,7 @@ Thread 1 "console_login" received signal SIGINT, Interrupt.
 (gdb)
 ```
 
-What a gorgeous view at location 0x24170! The message generated to check if the answer is correct. We were right about that part too. What happeed is that after an unsuccessful operation the memory address 0x24170 should have been freed, but it wasn't. This helped me further troubleshoot my first attempts at cracking the challenge, I was sending extra NULL characters in this case aswell (a bit is still a bit, even if it's '\0').
+What a gorgeous view at location 0x24170! The message generated to check if the answer is correct. We were right about that part too. What happeed is that after an unsuccessful operation the memory address 0x24170 should have been freed, but it wasn't. This helped  my firsts attempts at cracking the challenge, I was sending extra NULL characters in this case too! (a bit is still a bit, even if it's '\0').
 
 ## Conclusion, dumping the ram for the sake of it
 
@@ -714,7 +714,7 @@ TODO: does this work?
 
 So my compadres and comadres in bit counting, we have learned a lot of valiuable lessons!, but I will just hihglight 3:
 
-1. Ghidra pseudo code it's a very valuable tool, but it's an educated guess. Check your undefined variables against the Dissambled View and make sure it make sense (0x100 is not the same as 0x400)
+1. Ghidra pseudo code it's a very valuable tool, but it's an educated guess. Check your undefined variables against the dissambled View and make sure it make sense (0x100 is not the same as 0x400)
 2. malloc, memcpy and alike are great, it's one of the reasons C is so funny. But don't forget (whenever possible) about free, you can use ``valgrind -s --leak-check=full`` against your binary to check for leaks. 
 3. gdb is a beast of a tool, I'm only showing the very basic commands that got me through this. 
 
